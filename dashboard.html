@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UBL L&D — Executive Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --ubl: #0175C0;
+  --ubl-dark: #015a94;
+  --ubl-deeper: #01406b;
+  --ubl-light: #e8f4fd;
+  --ubl-glow: rgba(1,117,192,0.15);
+  --ubl-glow2: rgba(1,117,192,0.08);
+  --accent: #00c6ff;
+  --accent2: #38bdf8;
+  --bg: #f0f4f8;
+  --bg2: #e4ecf4;
+  --surface: #ffffff;
+  --surface2: #f7fafd;
+  --border: #dde6ef;
+  --border2: #c8d9e8;
+  --text: #0d1f2d;
+  --text-muted: #5a7389;
+  --text-dim: #8faabb;
+  --green: #059669;
+  --green-bg: #ecfdf5;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --amber: #d97706;
+  --amber-bg: #fffbeb;
+  --shadow-sm: 0 1px 3px rgba(1,64,107,0.08), 0 1px 2px rgba(1,64,107,0.04);
+  --shadow: 0 4px 16px rgba(1,64,107,0.10), 0 1px 4px rgba(1,64,107,0.06);
+  --shadow-lg: 0 12px 40px rgba(1,64,107,0.14), 0 4px 12px rgba(1,64,107,0.08);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ─────────────────────────────────────────── */
+.topbar {
+  background: var(--ubl);
+  background: linear-gradient(135deg, var(--ubl-deeper) 0%, var(--ubl) 60%, #0199e0 100%);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 20px rgba(1,64,107,0.3);
+}
+
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+
+.logo-wrap {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none;
+}
+
+.logo-box {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,0.2);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Instrument Serif', serif;
+  font-size: 15px; font-weight: 400;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.logo-text { display: flex; flex-direction: column; gap: 0; }
+.logo-main { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.2px; line-height: 1.2; }
+.logo-sub { font-size: 10px; color: rgba(255,255,255,0.7); letter-spacing: 1.2px; text-transform: uppercase; font-weight: 500; }
+
+.topbar-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.2); }
+
+.topbar-title { font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.85); }
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+
+.data-status {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 14px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  font-size: 12px; color: rgba(255,255,255,0.9);
+}
+
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+  animation: blink 2s infinite;
+}
+
+.status-dot.no-data { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; animation: none; }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.btn-outline {
+  padding: 7px 16px;
+  background: rgba(255,255,255,0.1);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 6px;
+  text-decoration: none;
+}
+.btn-outline:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
+
+.btn-solid {
+  padding: 7px 16px;
+  background: #fff;
+  border: none;
+  border-radius: 8px;
+  color: var(--ubl);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-solid:hover { background: var(--ubl-light); }
+
+/* ── FILTER BAR ─────────────────────────────────────── */
+.filter-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+
+.toggle-group {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  padding: 6px 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.toggle-btn.active {
+  background: var(--ubl);
+  color: #fff;
+}
+.toggle-btn:hover:not(.active) { background: var(--bg2); color: var(--text); }
+
+.filter-select {
+  padding: 6px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px; font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.filter-select:focus { border-color: var(--ubl); }
+
+.filter-spacer { flex: 1; }
+
+.filter-meta { font-size: 11px; color: var(--text-dim); }
+.filter-meta strong { color: var(--ubl); }
+
+/* ── MAIN CONTENT ───────────────────────────────────── */
+.main { padding: 24px 32px; max-width: 1600px; margin: 0 auto; }
+
+/* ── EMPTY STATE ────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 60vh; gap: 20px; text-align: center;
+}
+.empty-icon {
+  width: 80px; height: 80px; border-radius: 20px;
+  background: var(--ubl-light);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+}
+.empty-title { font-size: 22px; font-weight: 700; color: var(--text); font-family: 'Instrument Serif', serif; }
+.empty-sub { font-size: 14px; color: var(--text-muted); max-width: 400px; line-height: 1.7; }
+.empty-btn {
+  padding: 11px 28px;
+  background: var(--ubl);
+  color: #fff;
+  border: none; border-radius: 10px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
+}
+.empty-btn:hover { background: var(--ubl-dark); transform: translateY(-1px); box-shadow: var(--shadow); }
+
+/* ── SECTION LABEL ──────────────────────────────────── */
+.section-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; margin-top: 28px;
+}
+.section-hdr:first-of-type { margin-top: 0; }
+.section-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  background: var(--ubl);
+  border-radius: 2px;
+}
+
+/* ── KPI CARDS ──────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, transform 0.2s;
+  animation: fadeUp 0.4s ease both;
+}
+.kpi-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: var(--card-accent, var(--ubl));
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.kpi-card:nth-child(1){animation-delay:.05s}
+.kpi-card:nth-child(2){animation-delay:.1s}
+.kpi-card:nth-child(3){animation-delay:.15s}
+.kpi-card:nth-child(4){animation-delay:.2s}
+.kpi-card:nth-child(5){animation-delay:.25s}
+
+.kpi-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.kpi-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: var(--icon-bg, var(--ubl-light));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+}
+.kpi-trend {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 8px; border-radius: 20px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.trend-up { background: var(--green-bg); color: var(--green); }
+.trend-down { background: var(--red-bg); color: var(--red); }
+.trend-flat { background: var(--ubl-light); color: var(--ubl); }
+
+.kpi-val {
+  font-size: 32px; font-weight: 800; color: var(--text);
+  line-height: 1; letter-spacing: -1px; margin-bottom: 4px;
+  font-family: 'Instrument Serif', serif;
+}
+.kpi-label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+.kpi-sub { font-size: 11px; color: var(--text-dim); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+/* ── 2-COL CHARTS ───────────────────────────────────── */
+.charts-2col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 16px; }
+.charts-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.charts-2col-eq { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow-sm);
+  animation: fadeUp 0.5s ease 0.3s both;
+}
+.card-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.card-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+.chart-wrap { position: relative; }
+
+.card-badge {
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px;
+  background: var(--ubl-light); color: var(--ubl);
+  white-space: nowrap;
+}
+
+/* ── CLUSTER CARDS ──────────────────────────────────── */
+.cluster-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 16px; }
+
+.cluster-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  position: relative; overflow: hidden;
+  animation: fadeUp 0.5s ease 0.35s both;
+  transition: box-shadow 0.2s;
+}
+.cluster-card:hover { box-shadow: var(--shadow); }
+
+.cluster-accent {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 4px;
+  background: var(--c-color, var(--ubl));
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.cluster-name {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-muted); margin-bottom: 6px;
+}
+.cluster-val {
+  font-size: 36px; font-weight: 800;
+  font-family: 'Instrument Serif', serif;
+  color: var(--text); line-height: 1; margin-bottom: 4px;
+}
+.cluster-sub { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; }
+
+.cluster-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.c-stat {
+  background: var(--bg);
+  border-radius: 8px; padding: 8px 10px;
+}
+.c-stat-val { font-size: 16px; font-weight: 700; color: var(--text); }
+.c-stat-lbl { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+
+/* ── ATTENDANCE TABLE ───────────────────────────────── */
+.att-table { width: 100%; border-collapse: collapse; }
+.att-table thead th {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 0 10px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.att-table tbody td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+  vertical-align: middle;
+}
+.att-table tbody tr:last-child td { border-bottom: none; }
+.att-table tbody tr:hover td { background: var(--surface2); color: var(--text); }
+.td-name { font-weight: 600; color: var(--text) !important; max-width: 200px; }
+.td-name span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+
+.att-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.att-bar-track { flex: 1; height: 6px; background: var(--bg2); border-radius: 3px; overflow: hidden; min-width: 60px; }
+.att-bar-fill { height: 100%; border-radius: 3px; background: var(--ubl); }
+.att-pct { font-size: 11px; font-weight: 700; color: var(--ubl); min-width: 34px; text-align: right; }
+
+/* ── GRADE TABLE ────────────────────────────────────── */
+.grade-table { width: 100%; border-collapse: collapse; }
+.grade-table th {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text-dim); padding: 0 10px 10px; border-bottom: 1px solid var(--border); text-align: left;
+}
+.grade-table td {
+  padding: 9px 10px; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted); vertical-align: middle;
+}
+.grade-table tr:last-child td { border-bottom: none; }
+.grade-pill {
+  display: inline-block; padding: 2px 9px; border-radius: 12px;
+  font-size: 11px; font-weight: 700;
+  background: var(--ubl-light); color: var(--ubl);
+}
+
+/* ── MONTH HISTORY BADGES ───────────────────────────── */
+.history-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.month-chip {
+  padding: 5px 12px; border-radius: 20px;
+  background: var(--ubl-light); color: var(--ubl);
+  font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border2);
+  cursor: pointer; transition: all 0.15s;
+}
+.month-chip:hover, .month-chip.active { background: var(--ubl); color: #fff; border-color: var(--ubl); }
+
+/* ── PRINT STYLES ───────────────────────────────────── */
+@media print {
+  .topbar, .filter-bar, .btn-outline, .btn-solid, .empty-btn { display: none !important; }
+  body { background: #fff !important; }
+  .card, .kpi-card, .cluster-card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
+  .main { padding: 16px !important; }
+  .kpi-grid { grid-template-columns: repeat(5,1fr) !important; }
+}
+
+/* ── SCROLLBAR ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(3,1fr); }
+  .charts-2col { grid-template-columns: 1fr; }
+  .charts-3col { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="logo-wrap" href="#">
+      <div class="logo-box">UBL</div>
+      <div class="logo-text">
+        <span class="logo-main">L&D Center</span>
+        <span class="logo-sub">United Bank Limited</span>
+      </div>
+    </a>
+    <div class="topbar-divider"></div>
+    <span class="topbar-title">Executive Dashboard</span>
+  </div>
+  <div class="topbar-right">
+    <div class="data-status" id="dataStatus">
+      <div class="status-dot no-data" id="statusDot"></div>
+      <span id="statusText">No data loaded</span>
+    </div>
+    <button class="btn-outline" onclick="printDashboard()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print
+    </button>
+    <button class="btn-outline" onclick="exportPDF()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      Export PDF
+    </button>
+    <a href="admin.html" class="btn-solid">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Admin Panel
+    </a>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <span class="filter-label">View</span>
+    <div class="toggle-group" id="viewToggle">
+      <button class="toggle-btn active" data-view="month" onclick="setView('month',this)">Monthly</button>
+      <button class="toggle-btn" data-view="quarter" onclick="setView('quarter',this)">Quarterly</button>
+    </div>
+  </div>
+
+  <div class="filter-group" id="monthGroup">
+    <span class="filter-label">Month</span>
+    <select class="filter-select" id="monthFilter" onchange="applyFilters()">
+      <option value="all">All Months</option>
+    </select>
+  </div>
+
+  <div class="filter-group" id="quarterGroup" style="display:none">
+    <span class="filter-label">Quarter</span>
+    <div class="toggle-group" id="quarterToggle">
+      <button class="toggle-btn active" data-q="all" onclick="setQuarter('all',this)">All</button>
+      <button class="toggle-btn" data-q="Q1" onclick="setQuarter('Q1',this)">Q1</button>
+      <button class="toggle-btn" data-q="Q2" onclick="setQuarter('Q2',this)">Q2</button>
+      <button class="toggle-btn" data-q="Q3" onclick="setQuarter('Q3',this)">Q3</button>
+      <button class="toggle-btn" data-q="Q4" onclick="setQuarter('Q4',this)">Q4</button>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">Cluster</span>
+    <select class="filter-select" id="clusterFilter" onchange="applyFilters()">
+      <option value="all">All Clusters</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">Category</span>
+    <select class="filter-select" id="categoryFilter" onchange="applyFilters()">
+      <option value="all">All Categories</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <span class="filter-label">Delivery</span>
+    <select class="filter-select" id="deliveryFilter" onchange="applyFilters()">
+      <option value="all">All Modes</option>
+    </select>
+  </div>
+
+  <div class="filter-spacer"></div>
+  <div class="filter-meta" id="filterMeta">Upload data to begin</div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainContent">
+  <!-- EMPTY STATE -->
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">📊</div>
+    <div class="empty-title">No Training Data Loaded</div>
+    <div class="empty-sub">Upload your monthly Excel file from the Admin Panel to populate this dashboard with live training analytics.</div>
+    <a href="admin.html" class="empty-btn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      Go to Admin Panel
+    </a>
+  </div>
+
+  <!-- DASHBOARD CONTENT (hidden until data loaded) -->
+  <div id="dashContent" style="display:none">
+
+    <!-- KPIs -->
+    <div class="section-hdr">
+      <span class="section-title">Key Performance Indicators</span>
+      <span class="filter-meta" id="kpiPeriodLabel"></span>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--card-accent:#0175C0">
+        <div class="kpi-top">
+          <div class="kpi-icon" style="--icon-bg:#e8f4fd">👥</div>
+          <span class="kpi-trend trend-flat" id="kpi1trend">—</span>
+        </div>
+        <div class="kpi-val" id="kpi-enrolled">0</div>
+        <div class="kpi-label">Total Enrolled</div>
+        <div class="kpi-sub" id="kpi1sub">Employees invited to training</div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#059669">
+        <div class="kpi-top">
+          <div class="kpi-icon" style="--icon-bg:#ecfdf5">✅</div>
+          <span class="kpi-trend trend-flat" id="kpi2trend">—</span>
+        </div>
+        <div class="kpi-val" id="kpi-attended">0</div>
+        <div class="kpi-label">Total Attended</div>
+        <div class="kpi-sub" id="kpi2sub">Confirmed attendance</div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#d97706">
+        <div class="kpi-top">
+          <div class="kpi-icon" style="--icon-bg:#fffbeb">📋</div>
+          <span class="kpi-trend trend-flat" id="kpi3trend">—</span>
+        </div>
+        <div class="kpi-val" id="kpi-courses">0</div>
+        <div class="kpi-label">Courses Conducted</div>
+        <div class="kpi-sub" id="kpi3sub">Unique training programs</div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#7c3aed">
+        <div class="kpi-top">
+          <div class="kpi-icon" style="--icon-bg:#f5f3ff">⏱</div>
+          <span class="kpi-trend trend-flat" id="kpi4trend">—</span>
+        </div>
+        <div class="kpi-val" id="kpi-hours">0</div>
+        <div class="kpi-label">Training Hours</div>
+        <div class="kpi-sub" id="kpi4sub">Total working hours delivered</div>
+      </div>
+      <div class="kpi-card" style="--card-accent:#0175C0">
+        <div class="kpi-top">
+          <div class="kpi-icon" style="--icon-bg:#e8f4fd">📈</div>
+          <span class="kpi-trend trend-flat" id="kpi5trend">—</span>
+        </div>
+        <div class="kpi-val" id="kpi-attrate">0%</div>
+        <div class="kpi-label">Attendance Rate</div>
+        <div class="kpi-sub" id="kpi5sub">Attended ÷ Enrolled</div>
+      </div>
+    </div>
+
+    <!-- CLUSTER BREAKDOWN -->
+    <div class="section-hdr" style="margin-top:24px">
+      <span class="section-title">Cluster Performance</span>
+    </div>
+    <div class="cluster-row" id="clusterRow"></div>
+
+    <!-- CHARTS ROW 1 -->
+    <div class="section-hdr">
+      <span class="section-title">Training Activity</span>
+    </div>
+    <div class="charts-2col">
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Monthly Attendance vs Enrolled Trend</div>
+            <div class="card-sub">Enrolled vs attended employees per month</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="monthlyTrendChart" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Training Category Mix</div>
+            <div class="card-sub">Distribution by category</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="categoryChart" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2 -->
+    <div class="charts-3col">
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Delivery Mode</div>
+            <div class="card-sub">Virtual vs In-House</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="deliveryChart" height="180"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Training Type</div>
+            <div class="card-sub">Online vs Classroom</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="typeChart" height="180"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Training Status</div>
+            <div class="card-sub">Planned vs Unplanned</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="statusChart" height="180"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE ANALYSIS -->
+    <div class="section-hdr">
+      <span class="section-title">Attendance Analysis</span>
+    </div>
+    <div class="charts-2col-eq">
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Attendance by Grade</div>
+            <div class="card-sub">Enrolled vs attended per grade band</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="gradeChart" height="220"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Attendance by Cluster</div>
+            <div class="card-sub">Enrolled vs attended per region</div>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="clusterAttChart" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <!-- COURSE TABLE -->
+    <div class="section-hdr">
+      <span class="section-title">Course Analytics</span>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hdr">
+        <div>
+          <div class="card-title">Course-wise Attendance Breakdown</div>
+          <div class="card-sub">Enrollment vs attendance per course — top courses shown</div>
+        </div>
+        <span class="card-badge" id="courseBadge">All Courses</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="att-table">
+          <thead>
+            <tr>
+              <th>Course Title</th>
+              <th>Category</th>
+              <th>Delivery</th>
+              <th>Enrolled</th>
+              <th>Attended</th>
+              <th>Attendance Rate</th>
+              <th>Duration (days)</th>
+            </tr>
+          </thead>
+          <tbody id="courseTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GRADE TABLE -->
+    <div class="charts-2col-eq" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Grade-wise Participation</div>
+            <div class="card-sub">Training coverage by employee grade</div>
+          </div>
+        </div>
+        <table class="grade-table" id="gradeTableEl">
+          <thead><tr><th>Grade</th><th>Enrolled</th><th>Attended</th><th>Rate</th></tr></thead>
+          <tbody id="gradeTableBody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <div>
+            <div class="card-title">Data History</div>
+            <div class="card-sub">Monthly uploads in repository</div>
+          </div>
+        </div>
+        <div id="historyContent">
+          <div class="history-chips" id="historyChips"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dashContent -->
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let allData = [];       // merged from all uploads
+let filteredData = [];
+let charts = {};
+let currentView = 'month';
+let currentMonth = 'all';
+let currentQuarter = 'all';
+let currentCluster = 'all';
+let currentCategory = 'all';
+let currentDelivery = 'all';
+
+// ═══════════════════════════════════════════════════════
+// INIT — load from localStorage
+// ═══════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  loadFromStorage();
+});
+
+function loadFromStorage() {
+  const raw = localStorage.getItem('ubl_ld_data');
+  if (raw) {
+    try {
+      allData = JSON.parse(raw);
+      if (allData.length > 0) initDashboard();
+    } catch(e) { allData = []; }
+  }
+}
+
+function initDashboard() {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('dashContent').style.display = 'block';
+  document.getElementById('statusDot').classList.remove('no-data');
+  document.getElementById('statusText').textContent = `${allData.length.toLocaleString()} records loaded`;
+
+  populateFilters();
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════
+// POPULATE FILTER DROPDOWNS
+// ═══════════════════════════════════════════════════════
+function populateFilters() {
+  // Months from data
+  const months = [...new Set(allData.map(r => r._month).filter(Boolean))].sort();
+  const mSel = document.getElementById('monthFilter');
+  mSel.innerHTML = '<option value="all">All Months</option>';
+  months.forEach(m => { mSel.innerHTML += `<option value="${m}">${m}</option>`; });
+
+  // Clusters
+  const clusters = [...new Set(allData.map(r => norm(r.Cluster)).filter(Boolean))].sort();
+  const cSel = document.getElementById('clusterFilter');
+  cSel.innerHTML = '<option value="all">All Clusters</option>';
+  clusters.forEach(c => { cSel.innerHTML += `<option value="${c}">${c}</option>`; });
+
+  // Categories
+  const cats = [...new Set(allData.map(r => norm(r.Category)).filter(Boolean))].sort();
+  const catSel = document.getElementById('categoryFilter');
+  catSel.innerHTML = '<option value="all">All Categories</option>';
+  cats.forEach(c => { catSel.innerHTML += `<option value="${c}">${c}</option>`; });
+
+  // Delivery modes
+  const dels = [...new Set(allData.map(r => norm(r['Delivery Mode'])).filter(Boolean))].sort();
+  const dSel = document.getElementById('deliveryFilter');
+  dSel.innerHTML = '<option value="all">All Modes</option>';
+  dels.forEach(d => { dSel.innerHTML += `<option value="${d}">${d}</option>`; });
+
+  // History chips
+  renderHistoryChips();
+}
+
+function renderHistoryChips() {
+  const months = [...new Set(allData.map(r => r._month).filter(Boolean))].sort();
+  const container = document.getElementById('historyChips');
+  if (months.length === 0) {
+    container.innerHTML = '<span style="color:var(--text-dim);font-size:12px;">No monthly data yet.</span>';
+    return;
+  }
+  container.innerHTML = months.map(m =>
+    `<span class="month-chip" onclick="jumpToMonth('${m}')">${m}</span>`
+  ).join('');
+}
+
+function jumpToMonth(m) {
+  currentView = 'month';
+  currentMonth = m;
+  document.querySelectorAll('#viewToggle .toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.view === 'month'));
+  document.getElementById('monthGroup').style.display = '';
+  document.getElementById('quarterGroup').style.display = 'none';
+  document.getElementById('monthFilter').value = m;
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════════════════
+function setView(v, el) {
+  currentView = v;
+  document.querySelectorAll('#viewToggle .toggle-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('monthGroup').style.display = v === 'month' ? '' : 'none';
+  document.getElementById('quarterGroup').style.display = v === 'quarter' ? '' : 'none';
+  applyFilters();
+}
+
+function setQuarter(q, el) {
+  currentQuarter = q;
+  document.querySelectorAll('#quarterToggle .toggle-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  currentMonth = document.getElementById('monthFilter').value;
+  currentCluster = document.getElementById('clusterFilter').value;
+  currentCategory = document.getElementById('categoryFilter').value;
+  currentDelivery = document.getElementById('deliveryFilter').value;
+
+  filteredData = allData.filter(r => {
+    if (currentView === 'month' && currentMonth !== 'all' && r._month !== currentMonth) return false;
+    if (currentView === 'quarter' && currentQuarter !== 'all' && r._quarter !== currentQuarter) return false;
+    if (currentCluster !== 'all' && norm(r.Cluster) !== currentCluster) return false;
+    if (currentCategory !== 'all' && norm(r.Category) !== currentCategory) return false;
+    if (currentDelivery !== 'all' && norm(r['Delivery Mode']) !== currentDelivery) return false;
+    return true;
+  });
+
+  const label = buildLabel();
+  document.getElementById('filterMeta').innerHTML = `Showing <strong>${filteredData.length.toLocaleString()}</strong> records · ${label}`;
+  document.getElementById('kpiPeriodLabel').textContent = label;
+
+  renderKPIs();
+  renderClusters();
+  renderCharts();
+  renderCourseTable();
+  renderGradeTable();
+}
+
+function buildLabel() {
+  if (currentView === 'month') return currentMonth === 'all' ? 'All Months' : currentMonth;
+  return currentQuarter === 'all' ? 'Full Year' : currentQuarter;
+}
+
+// ═══════════════════════════════════════════════════════
+// KPIs
+// ═══════════════════════════════════════════════════════
+function renderKPIs() {
+  const enrolled = filteredData.filter(r => isEnrolled(r)).length;
+  const attended = filteredData.filter(r => isAttended(r)).length;
+  const courses = new Set(filteredData.map(r => norm(r['Course Title']))).size;
+  const hours = filteredData.reduce((s, r) => s + (parseFloat(r['Working Hours']) || 0), 0);
+  const rate = enrolled > 0 ? Math.round((attended / enrolled) * 100) : 0;
+
+  animCount('kpi-enrolled', enrolled);
+  animCount('kpi-attended', attended);
+  animCount('kpi-courses', courses);
+  animCount('kpi-hours', Math.round(hours));
+  document.getElementById('kpi-attrate').textContent = rate + '%';
+
+  document.getElementById('kpi1sub').textContent = `Across ${courses} programs`;
+  document.getElementById('kpi2sub').textContent = `Out of ${enrolled.toLocaleString()} enrolled`;
+  document.getElementById('kpi5sub').textContent = `${attended.toLocaleString()} attended / ${enrolled.toLocaleString()} enrolled`;
+}
+
+// ═══════════════════════════════════════════════════════
+// CLUSTERS
+// ═══════════════════════════════════════════════════════
+function renderClusters() {
+  const clusters = [...new Set(allData.map(r => norm(r.Cluster)).filter(Boolean))].sort();
+  const colors = ['#0175C0','#059669','#d97706','#7c3aed','#dc2626'];
+  const container = document.getElementById('clusterRow');
+
+  container.innerHTML = clusters.map((c, i) => {
+    const cData = filteredData.filter(r => norm(r.Cluster) === c);
+    const enrolled = cData.filter(r => isEnrolled(r)).length;
+    const attended = cData.filter(r => isAttended(r)).length;
+    const courses = new Set(cData.map(r => norm(r['Course Title']))).size;
+    const rate = enrolled > 0 ? Math.round((attended/enrolled)*100) : 0;
+    const color = colors[i % colors.length];
+    return `
+      <div class="cluster-card" style="--c-color:${color}">
+        <div class="cluster-accent"></div>
+        <div style="padding-left:8px">
+          <div class="cluster-name">${c} Cluster</div>
+          <div class="cluster-val">${enrolled.toLocaleString()}</div>
+          <div class="cluster-sub">Employees enrolled</div>
+          <div class="cluster-stats">
+            <div class="c-stat"><div class="c-stat-val" style="color:${color}">${attended.toLocaleString()}</div><div class="c-stat-lbl">Attended</div></div>
+            <div class="c-stat"><div class="c-stat-val" style="color:${color}">${rate}%</div><div class="c-stat-lbl">Rate</div></div>
+            <div class="c-stat"><div class="c-stat-val" style="color:${color}">${courses}</div><div class="c-stat-lbl">Courses</div></div>
+            <div class="c-stat"><div class="c-stat-val" style="color:${color}">${cData.length.toLocaleString()}</div><div class="c-stat-lbl">Records</div></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════
+const UBL = '#0175C0';
+const BLUE_LIGHT = 'rgba(1,117,192,0.15)';
+const GREEN = '#059669';
+const AMBER = '#d97706';
+const PURPLE = '#7c3aed';
+const RED = '#dc2626';
+const PALETTE = [UBL,'#059669','#d97706','#7c3aed','#dc2626','#0891b2','#be185d','#b45309'];
+
+const chartDefaults = {
+  plugins: {
+    legend: { labels: { font: { family: 'Plus Jakarta Sans', size: 11 }, color: '#5a7389', boxWidth: 10, boxHeight: 10, padding: 12 } },
+    tooltip: { backgroundColor: '#0d1f2d', titleColor: '#fff', bodyColor: '#94a3b8', padding: 10, cornerRadius: 8, titleFont: { family: 'Plus Jakarta Sans', weight: '600' }, bodyFont: { family: 'Plus Jakarta Sans' } }
+  },
+  scales: {
+    x: { grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false }, ticks: { font: { family: 'Plus Jakarta Sans', size: 11 }, color: '#5a7389' } },
+    y: { grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false }, ticks: { font: { family: 'Plus Jakarta Sans', size: 11 }, color: '#5a7389' } }
+  }
+};
+
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderCharts() {
+  renderMonthlyTrend();
+  renderCategoryChart();
+  renderDeliveryChart();
+  renderTypeChart();
+  renderStatusChart();
+  renderGradeChart();
+  renderClusterAttChart();
+}
+
+function renderMonthlyTrend() {
+  destroyChart('monthlyTrendChart');
+  const months = [...new Set(allData.map(r => r._month).filter(Boolean))].sort();
+  const enrolled = months.map(m => allData.filter(r => r._month === m && isEnrolled(r)).length);
+  const attended = months.map(m => allData.filter(r => r._month === m && isAttended(r)).length);
+
+  charts['monthlyTrendChart'] = new Chart(document.getElementById('monthlyTrendChart'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        { label: 'Enrolled', data: enrolled, backgroundColor: BLUE_LIGHT, borderColor: UBL, borderWidth: 1.5, borderRadius: 4, order: 2 },
+        { label: 'Attended', data: attended, type: 'line', borderColor: GREEN, backgroundColor: 'rgba(5,150,105,0.08)', fill: true, pointBackgroundColor: GREEN, pointRadius: 4, tension: 0.4, order: 1 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }
+  });
+}
+
+function renderCategoryChart() {
+  destroyChart('categoryChart');
+  const counts = countBy(filteredData, r => norm(r.Category));
+  charts['categoryChart'] = new Chart(document.getElementById('categoryChart'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{ data: Object.values(counts), backgroundColor: PALETTE, borderColor: '#fff', borderWidth: 3, hoverOffset: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { font: { family:'Plus Jakarta Sans', size:11 }, color:'#5a7389', boxWidth:10, boxHeight:10, padding:10 } },
+        tooltip: chartDefaults.plugins.tooltip } }
+  });
+}
+
+function renderDeliveryChart() {
+  destroyChart('deliveryChart');
+  const counts = countBy(filteredData, r => norm(r['Delivery Mode']));
+  charts['deliveryChart'] = new Chart(document.getElementById('deliveryChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: [UBL, AMBER, GREEN, PURPLE], borderColor: '#fff', borderWidth: 3, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { font:{family:'Plus Jakarta Sans',size:11}, color:'#5a7389', boxWidth:10, boxHeight:10, padding:8 } }, tooltip: chartDefaults.plugins.tooltip } }
+  });
+}
+
+function renderTypeChart() {
+  destroyChart('typeChart');
+  const counts = countBy(filteredData, r => norm(r['Training Type']));
+  charts['typeChart'] = new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: [GREEN, PURPLE, UBL, AMBER], borderColor: '#fff', borderWidth: 3, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { font:{family:'Plus Jakarta Sans',size:11}, color:'#5a7389', boxWidth:10, boxHeight:10, padding:8 } }, tooltip: chartDefaults.plugins.tooltip } }
+  });
+}
+
+function renderStatusChart() {
+  destroyChart('statusChart');
+  const counts = countBy(filteredData, r => norm(r['Training Status']));
+  charts['statusChart'] = new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: [UBL, AMBER, RED, GREEN], borderColor: '#fff', borderWidth: 3, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { font:{family:'Plus Jakarta Sans',size:11}, color:'#5a7389', boxWidth:10, boxHeight:10, padding:8 } }, tooltip: chartDefaults.plugins.tooltip } }
+  });
+}
+
+function renderGradeChart() {
+  destroyChart('gradeChart');
+  const gradeOrder = ['OG-4','OG-3','OG-2','OG-1','AVP','VP','SVP','EVP','SEVP','SEVP-II'];
+  const grades = [...new Set(filteredData.map(r => norm(r.Grade)).filter(Boolean))];
+  const sorted = gradeOrder.filter(g => grades.includes(g)).concat(grades.filter(g => !gradeOrder.includes(g)).sort());
+
+  const enrolled = sorted.map(g => filteredData.filter(r => norm(r.Grade)===g && isEnrolled(r)).length);
+  const attended = sorted.map(g => filteredData.filter(r => norm(r.Grade)===g && isAttended(r)).length);
+
+  charts['gradeChart'] = new Chart(document.getElementById('gradeChart'), {
+    type: 'bar',
+    data: {
+      labels: sorted,
+      datasets: [
+        { label: 'Enrolled', data: enrolled, backgroundColor: BLUE_LIGHT, borderColor: UBL, borderWidth: 1.5, borderRadius: 4 },
+        { label: 'Attended', data: attended, backgroundColor: 'rgba(5,150,105,0.2)', borderColor: GREEN, borderWidth: 1.5, borderRadius: 4 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }
+  });
+}
+
+function renderClusterAttChart() {
+  destroyChart('clusterAttChart');
+  const clusters = [...new Set(filteredData.map(r => norm(r.Cluster)).filter(Boolean))].sort();
+  const enrolled = clusters.map(c => filteredData.filter(r => norm(r.Cluster)===c && isEnrolled(r)).length);
+  const attended = clusters.map(c => filteredData.filter(r => norm(r.Cluster)===c && isAttended(r)).length);
+
+  charts['clusterAttChart'] = new Chart(document.getElementById('clusterAttChart'), {
+    type: 'bar',
+    data: {
+      labels: clusters,
+      datasets: [
+        { label: 'Enrolled', data: enrolled, backgroundColor: BLUE_LIGHT, borderColor: UBL, borderWidth: 1.5, borderRadius: 6 },
+        { label: 'Attended', data: attended, backgroundColor: 'rgba(5,150,105,0.2)', borderColor: GREEN, borderWidth: 1.5, borderRadius: 6 }
+      ]
+    },
+    options: { ...chartDefaults, responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false } }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// TABLES
+// ═══════════════════════════════════════════════════════
+function renderCourseTable() {
+  const courses = [...new Set(filteredData.map(r => norm(r['Course Title'])).filter(Boolean))];
+  const rows = courses.map(course => {
+    const d = filteredData.filter(r => norm(r['Course Title']) === course);
+    const enrolled = d.filter(r => isEnrolled(r)).length;
+    const attended = d.filter(r => isAttended(r)).length;
+    const rate = enrolled > 0 ? Math.round((attended/enrolled)*100) : 0;
+    const cat = norm(d[0]?.Category) || '—';
+    const del = norm(d[0]?.['Delivery Mode']) || '—';
+    const dur = d[0]?.Duration || '—';
+    return { course, cat, del, enrolled, attended, rate, dur };
+  }).sort((a,b) => b.enrolled - a.enrolled).slice(0, 20);
+
+  document.getElementById('courseBadge').textContent = `Top ${rows.length} of ${courses.length} courses`;
+
+  document.getElementById('courseTableBody').innerHTML = rows.map(r => `
+    <tr>
+      <td class="td-name"><span title="${r.course}">${r.course}</span></td>
+      <td><span style="font-size:11px;background:var(--ubl-light);color:var(--ubl);padding:2px 8px;border-radius:10px;font-weight:600">${r.cat}</span></td>
+      <td>${r.del}</td>
+      <td><strong>${r.enrolled.toLocaleString()}</strong></td>
+      <td>${r.attended.toLocaleString()}</td>
+      <td>
+        <div class="att-bar-wrap">
+          <div class="att-bar-track"><div class="att-bar-fill" style="width:${r.rate}%;background:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'}"></div></div>
+          <span class="att-pct" style="color:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'}">${r.rate}%</span>
+        </div>
+      </td>
+      <td>${r.dur}</td>
+    </tr>`).join('');
+}
+
+function renderGradeTable() {
+  const gradeOrder = ['OG-4','OG-3','OG-2','OG-1','AVP','VP','SVP','EVP','SEVP','SEVP-II'];
+  const grades = [...new Set(filteredData.map(r => norm(r.Grade)).filter(Boolean))];
+  const sorted = gradeOrder.filter(g => grades.includes(g)).concat(grades.filter(g => !gradeOrder.includes(g)).sort());
+
+  document.getElementById('gradeTableBody').innerHTML = sorted.map(g => {
+    const d = filteredData.filter(r => norm(r.Grade) === g);
+    const enrolled = d.filter(r => isEnrolled(r)).length;
+    const attended = d.filter(r => isAttended(r)).length;
+    const rate = enrolled > 0 ? Math.round((attended/enrolled)*100) : 0;
+    return `<tr>
+      <td><span class="grade-pill">${g}</span></td>
+      <td><strong>${enrolled.toLocaleString()}</strong></td>
+      <td>${attended.toLocaleString()}</td>
+      <td>
+        <div class="att-bar-wrap">
+          <div class="att-bar-track" style="min-width:40px"><div class="att-bar-fill" style="width:${rate}%;background:${rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'}"></div></div>
+          <span class="att-pct" style="color:${rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'};font-size:11px">${rate}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════
+function norm(v) { return v == null ? '' : String(v).trim(); }
+
+function isEnrolled(r) {
+  const s = norm(r['Attendance Status']).toLowerCase();
+  return s.includes('enroll') || s.includes('invited') || s === '';
+}
+
+function isAttended(r) {
+  const s = norm(r['Attendance Status']).toLowerCase();
+  return s.includes('attend');
+}
+
+function countBy(data, keyFn) {
+  const obj = {};
+  data.forEach(r => { const k = keyFn(r) || 'Unknown'; obj[k] = (obj[k] || 0) + 1; });
+  return obj;
+}
+
+function animCount(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const dur = 900, step = target / (dur / 16);
+  let cur = 0;
+  const t = setInterval(() => {
+    cur = Math.min(cur + step, target);
+    el.textContent = Math.floor(cur).toLocaleString();
+    if (cur >= target) clearInterval(t);
+  }, 16);
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT / PRINT
+// ═══════════════════════════════════════════════════════
+function printDashboard() { window.print(); }
+
+function exportPDF() {
+  alert('Tip: Use your browser\'s Print dialog → Save as PDF for the best results. Click Print to open it.');
+  window.print();
+}
+
+// ═══════════════════════════════════════════════════════
+// PUBLIC: called by admin to inject data
+// ═══════════════════════════════════════════════════════
+window.loadDashboardData = function(newRows, monthLabel) {
+  // Remove old data for same month, then append
+  allData = allData.filter(r => r._month !== monthLabel);
+  allData = allData.concat(newRows);
+  localStorage.setItem('ubl_ld_data', JSON.stringify(allData));
+  initDashboard();
+};
+</script>
+</body>
+</html>
