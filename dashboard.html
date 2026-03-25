@@ -298,13 +298,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="kpi-card" style="--card-accent:#0175C0">
         <div class="kpi-top"><div class="kpi-icon" style="--icon-bg:var(--ubl-light)">👥</div><span class="kpi-trend trend-flat">—</span></div>
         <div class="kpi-val" id="kpi-enrolled">0</div>
-        <div class="kpi-label">Total Enrolled</div>
+        <div class="kpi-label">Total Enrolled (Invited)</div>
         <div class="kpi-sub" id="kpi1sub">Training invitations issued</div>
       </div>
       <div class="kpi-card" style="--card-accent:#059669">
         <div class="kpi-top"><div class="kpi-icon" style="--icon-bg:var(--green-bg)">✅</div><span class="kpi-trend trend-flat">—</span></div>
         <div class="kpi-val" id="kpi-attended">0</div>
-        <div class="kpi-label">Confirmed Attendance</div>
+        <div class="kpi-label">Attended</div>
         <div class="kpi-sub" id="kpi2sub">Employees who attended</div>
       </div>
       <div class="kpi-card" style="--card-accent:#d97706">
@@ -596,8 +596,8 @@ function renderKPIs() {
   animCount('kpi-uniqueEmp', uniqueEmps);
   animCount('kpi-modules',   modules);
   document.getElementById('kpi-avgTrainings').textContent = avgTrainings;
-  document.getElementById('kpi1sub').textContent = `Across ${courses} courses · ${uniqueEmps.toLocaleString()} unique employees`;
-  document.getElementById('kpi2sub').textContent = `Out of ${enrolled.toLocaleString()} enrolled records`;
+  document.getElementById('kpi1sub').textContent = `All invited employees (attended + not attended)`;
+  document.getElementById('kpi2sub').textContent = `Invited employees who confirmed attendance`;
   document.getElementById('kpi5sub').textContent = `${attended.toLocaleString()} attended / ${enrolled.toLocaleString()} enrolled`;
 }
 
@@ -823,10 +823,13 @@ function renderGradeTable(){
 // ════════════════════════════════════════════════════════
 function norm(v){ return v==null?'':String(v).trim(); }
 
-function isEnrolled(r){
-  const s=norm(r['Attendance Status']).toLowerCase();
-  return s.includes('enroll')||s.includes('invited')||s==='';
-}
+// ENROLLED = every row = every employee who was invited to training.
+// Attended employees were also enrolled, so Total Enrolled = all rows.
+// This ensures Attendance Rate can never exceed 100%.
+function isEnrolled(r){ return true; }
+
+// ATTENDED = only those with an explicit attended status.
+// Enrolled/Invited alone = invited but did NOT attend.
 function isAttended(r){
   const s=norm(r['Attendance Status']).toLowerCase();
   return s.includes('attend');
