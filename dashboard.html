@@ -453,6 +453,13 @@ function cleanCluster(raw) {
   return stripped || String(raw).trim();
 }
 
+// Strip "Region" word from values so "South Region" → "South"
+function cleanRegion(raw) {
+  if (!raw) return '';
+  const stripped = String(raw).trim().replace(/\bregion\b\s*/gi, '').trim();
+  return stripped || String(raw).trim();
+}
+
 /**
  * RULE 2: Determine banking segment
  * Priority:
@@ -496,8 +503,12 @@ function initDashboard() {
   document.getElementById('dashContent').style.display = 'block';
   document.getElementById('statusDot').classList.remove('no-data');
   document.getElementById('statusText').textContent = `${allData.length.toLocaleString()} records loaded`;
-  // Tag banking type on every row
-  allData = allData.map(r => ({ ...r, _bankingType: getBankingType(r) }));
+  // Normalise Region ("South Region"→"South") and tag banking type
+  allData = allData.map(r => ({
+    ...r,
+    _region: cleanRegion(r._region),
+    _bankingType: getBankingType(r)
+  }));
   populateFilters();
   applyFilters();
 }
@@ -511,8 +522,8 @@ function populateFilters() {
   mSel.innerHTML = '<option value="all">All Months</option>';
   months.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
 
-  // Region filter (South / Central / North learning centers)
-  const regions = [...new Set(allData.map(r=>norm(r['Region'])).filter(Boolean))].sort();
+  // Region filter — uses _region (pre-cleaned: 'South Region'→'South')
+  const regions = [...new Set(allData.map(r=>r._region).filter(Boolean))].sort();
   const rSel = document.getElementById('regionFilter');
   rSel.innerHTML = '<option value="all">All Regions</option>';
   regions.forEach(r => rSel.innerHTML += `<option value="${r}">${r}</option>`);
@@ -589,7 +600,7 @@ function applyFilters() {
     if (currentView==='month'   && currentMonth!=='all'   && r._month!==currentMonth)       return false;
     if (currentView==='quarter' && currentQuarter!=='all' && r._quarter!==currentQuarter)   return false;
     if (currentBanking!=='all'  && r._bankingType!==currentBanking)                         return false;
-    if (currentRegion!=='all'   && norm(r['Region'])!==currentRegion)                       return false;
+    if (currentRegion!=='all'   && r._region!==currentRegion)                       return false;
     if (currentCluster!=='all'  && norm(r.Cluster)!==currentCluster)                        return false;
     if (currentCategory!=='all' && norm(r.Category)!==currentCategory)                      return false;
     if (currentDelivery!=='all' && norm(r['Delivery Mode'])!==currentDelivery)              return false;
@@ -621,7 +632,7 @@ function renderKPIs() {
   // CHANGE 2: Programs counted as Course Title + Region combos
   // Same program running simultaneously in different regions = separate programs
   const courses    = new Set(filteredData.map(r=>{
-    const ct=norm(r['Course Title']); const rg=norm(r['Region']);
+    const ct=norm(r['Course Title']); const rg=r._region;
     return (ct&&ct.toLowerCase()!=='n/a') ? `${ct}||${rg}` : null;
   }).filter(Boolean)).size;
   const hours      = filteredData.reduce((s,r)=>s+(parseFloat(r['Working Hours'])||0),0);
@@ -654,7 +665,7 @@ function renderBankingCards() {
     const enrolled = d.filter(isEnrolled).length;
     const attended = d.filter(isAttended).length;
     const unique   = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
-    const courses  = new Set(d.map(r=>{const ct=norm(r['Course Title']),rg=norm(r['Region']);return(ct&&ct.toLowerCase()!=='n/a')?`${ct}||${rg}`:null;}).filter(Boolean)).size;
+    const courses  = new Set(d.map(r=>{const ct=norm(r['Course Title']),rg=r._region;return(ct&&ct.toLowerCase()!=='n/a')?`${ct}||${rg}`:null;}).filter(Boolean)).size;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const hours    = d.reduce((s,r)=>s+(parseFloat(r['Working Hours'])||0),0);
     return `<div class="banking-card ${seg}">
@@ -687,7 +698,7 @@ function renderRegions() {
   const REGION_ICONS  = { South:'🏙', Central:'🏛', North:'🏔' };
 
   // Get all regions from data — ordered, with fallback for unexpected values
-  const allRegions = [...new Set(filteredData.map(r=>norm(r['Region'])).filter(Boolean))];
+  const allRegions = [...new Set(filteredData.map(r=>r._region).filter(Boolean))];
   const ordered = [
     ...REGION_ORDER.filter(r=>allRegions.includes(r)),
     ...allRegions.filter(r=>!REGION_ORDER.includes(r)).sort()
@@ -701,7 +712,7 @@ function renderRegions() {
 
   document.getElementById('regionRow').innerHTML = ordered.map(region => {
     // Region = training location: count all rows where Region matches
-    const d        = filteredData.filter(r=>norm(r['Region'])===region);
+    const d        = filteredData.filter(r=>r._region===region);
     const enrolled = d.length;                                     // everyone in this region's training
     const attended = d.filter(isAttended).length;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
@@ -755,7 +766,7 @@ function renderClusters() {
     const enrolled = d.filter(isEnrolled).length;
     const attended = d.filter(isAttended).length;
     const unique   = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
-    const courses  = new Set(d.map(r=>{const ct=norm(r['Course Title']),rg=norm(r['Region']);return(ct&&ct.toLowerCase()!=='n/a')?`${ct}||${rg}`:null;}).filter(Boolean)).size;
+    const courses  = new Set(d.map(r=>{const ct=norm(r['Course Title']),rg=r._region;return(ct&&ct.toLowerCase()!=='n/a')?`${ct}||${rg}`:null;}).filter(Boolean)).size;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const color    = colors[i%colors.length];
     const display  = cleanCluster(raw); // RULE 1
@@ -794,7 +805,11 @@ function renderCharts(){
 
 function renderMonthlyTrend(){
   dc('monthlyTrendChart');
-  const src    = currentBanking==='all'?allData:allData.filter(r=>r._bankingType===currentBanking);
+  const src = allData.filter(r => {
+    if (currentBanking!=='all' && r._bankingType!==currentBanking) return false;
+    if (currentRegion!=='all'  && r._region!==currentRegion)       return false;
+    return true;
+  });
   const months = [...new Set(allData.map(r=>r._month).filter(Boolean))].sort();
   charts['monthlyTrendChart']=new Chart(document.getElementById('monthlyTrendChart'),{
     type:'bar',
