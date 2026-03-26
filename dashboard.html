@@ -506,7 +506,8 @@ function initDashboard() {
   // Normalise Region ("South Region"→"South") and tag banking type
   allData = allData.map(r => ({
     ...r,
-    _region: cleanRegion(r._region),
+    // Use stored _region if valid, else re-derive from raw Region column
+    _region: (()=>{ const v=cleanRegion(norm(r['Region'])); return v||cleanRegion(norm(r['_region']||'')); })(),
     _bankingType: getBankingType(r)
   }));
   populateFilters();
@@ -705,8 +706,13 @@ function renderRegions() {
   ];
 
   if (!ordered.length) {
+    // Debug: show what region values actually exist in the data
+    const debugVals = [...new Set(filteredData.map(r=>norm(r['Region'])||'(blank)').slice(0,5))];
     document.getElementById('regionRow').innerHTML =
-      '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-dim);font-size:13px">No Region data found. Ensure your Excel file has a "Region" column.</div>';
+      `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-dim);font-size:13px">`
+      + `No Region data found. `
+      + `Sample 'Region' column values from your data: <strong>${debugVals.join(' | ') || 'all blank'}</strong>. `
+      + `Ensure your Excel column is named <em>Region</em>.</div>`;
     return;
   }
 
