@@ -119,6 +119,25 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .bk-stat-val{font-size:14px;font-weight:700;color:var(--bk)}
 .bk-stat-lbl{font-size:10px;color:var(--text-dim);margin-top:1px}
 
+/* REGION (L&D CENTER) CARDS */
+.region-row{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.region-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;animation:fadeUp 0.4s ease 0.25s both;transition:box-shadow 0.2s}
+.region-card:hover{box-shadow:var(--shadow)}
+.region-top-bar{position:absolute;top:0;left:0;right:0;height:4px;background:var(--r-color,var(--ubl))}
+.region-icon{font-size:22px;margin-bottom:8px}
+.region-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--text-muted);margin-bottom:4px}
+.region-val{font-size:36px;font-weight:800;font-family:'Instrument Serif',serif;color:var(--text);line-height:1;margin-bottom:2px}
+.region-sub{font-size:11px;color:var(--text-dim);margin-bottom:14px}
+.region-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.r-stat{background:var(--bg);border-radius:8px;padding:8px 10px}
+.r-stat-val{font-size:15px;font-weight:700;color:var(--r-color,var(--ubl))}
+.r-stat-lbl{font-size:10px;color:var(--text-dim);margin-top:1px}
+.region-bar{margin-top:14px;display:flex;align-items:center;gap:8px}
+.region-bar-track{flex:1;height:7px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.region-bar-fill{height:100%;border-radius:4px;background:var(--r-color,var(--ubl));transition:width 0.8s ease}
+.region-rate-lbl{font-size:12px;font-weight:700;color:var(--r-color,var(--ubl));min-width:38px;text-align:right}
+@media(max-width:900px){.region-row{grid-template-columns:1fr}}
+
 /* CLUSTER CARDS */
 .cluster-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:13px}
 .cluster-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;animation:fadeUp 0.4s ease 0.3s both;transition:box-shadow 0.2s}
@@ -346,8 +365,16 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="banking-grid" id="bankingGrid"></div>
 
     <!-- CLUSTERS -->
+    <!-- ── REGION (L&D CENTER) PERFORMANCE ── -->
+    <div class="section-hdr" style="margin-top:22px">
+      <span class="section-title">L&D Region Performance</span>
+      <span style="font-size:11px;color:var(--text-dim)">South · Central · North — where the training was delivered, not where employees are posted</span>
+    </div>
+    <div class="region-row" id="regionRow"></div>
+
     <div class="section-hdr" style="margin-top:22px">
       <span class="section-title">Cluster Performance</span>
+      <span style="font-size:11px;color:var(--text-dim)">Based on employee home cluster (where they are posted) — independent of which region trained them</span>
     </div>
     <div class="cluster-row" id="clusterRow"></div>
 
@@ -373,7 +400,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="section-hdr"><span class="section-title">Attendance Analysis</span></div>
     <div class="charts-2col-eq">
       <div class="card"><div class="card-hdr"><div><div class="card-title">Attendance by Grade</div><div class="card-sub">Enrolled vs attended (OG-4 → SEVP-II). N/A grades still counted.</div></div></div><div><canvas id="gradeChart" height="220"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Attendance by Cluster</div><div class="card-sub">Enrolled vs attended per region</div></div></div><div><canvas id="clusterAttChart" height="220"></canvas></div></div>
+      <div class="card"><div class="card-hdr"><div><div class="card-title">Attendance by Cluster</div><div class="card-sub">Enrolled vs attended per employee home cluster</div></div></div><div><canvas id="clusterAttChart" height="220"></canvas></div></div>
     </div>
 
     <!-- COURSE TABLE -->
@@ -574,7 +601,7 @@ function applyFilters() {
   document.getElementById('filterMeta').innerHTML = `Showing <strong>${filteredData.length.toLocaleString()}</strong> records · ${label}${bkLabel}`;
   document.getElementById('kpiPeriodLabel').textContent = label + bkLabel;
 
-  renderKPIs(); renderBankingCards(); renderClusters();
+  renderKPIs(); renderBankingCards(); renderRegions(); renderClusters();
   renderCharts(); renderCourseTable(); renderGradeTable();
 }
 
@@ -649,6 +676,69 @@ function renderBankingCards() {
 // ════════════════════════════════════════════════════════
 // CLUSTER CARDS  (RULE 1 — clean display name)
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// REGION CARDS
+// Region = where training was delivered (L&D center location)
+// Completely independent from Cluster (employee home area)
+// ════════════════════════════════════════════════════════
+function renderRegions() {
+  const REGION_ORDER = ['South','Central','North'];
+  const REGION_COLORS = { South:'#0175C0', Central:'#059669', North:'#d97706' };
+  const REGION_ICONS  = { South:'🏙', Central:'🏛', North:'🏔' };
+
+  // Get all regions from data — ordered, with fallback for unexpected values
+  const allRegions = [...new Set(filteredData.map(r=>norm(r['Region'])).filter(Boolean))];
+  const ordered = [
+    ...REGION_ORDER.filter(r=>allRegions.includes(r)),
+    ...allRegions.filter(r=>!REGION_ORDER.includes(r)).sort()
+  ];
+
+  if (!ordered.length) {
+    document.getElementById('regionRow').innerHTML =
+      '<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-dim);font-size:13px">No Region data found. Ensure your Excel file has a "Region" column.</div>';
+    return;
+  }
+
+  document.getElementById('regionRow').innerHTML = ordered.map(region => {
+    // Region = training location: count all rows where Region matches
+    const d        = filteredData.filter(r=>norm(r['Region'])===region);
+    const enrolled = d.length;                                     // everyone in this region's training
+    const attended = d.filter(isAttended).length;
+    const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
+    const hours    = d.reduce((s,r)=>s+(parseFloat(r['Working Hours'])||0),0);
+    // Programs = Course+Region combos delivered by THIS region's L&D center
+    const programs = new Set(d.map(r=>{
+      const ct=norm(r['Course Title']);
+      return (ct&&ct.toLowerCase()!=='n/a')?ct:null;
+    }).filter(Boolean)).size;
+    // Unique employees who attended trainings in this region (from ANY cluster)
+    const uniqueEmps = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
+    // How many different clusters sent employees to this region
+    const clustersServed = new Set(d.map(r=>norm(r['Cluster'])).filter(v=>v&&v.toLowerCase()!=='n/a')).size;
+
+    const color = REGION_COLORS[region] || '#0175C0';
+    const icon  = REGION_ICONS[region]  || '📍';
+
+    return `<div class="region-card" style="--r-color:${color}">
+      <div class="region-top-bar"></div>
+      <div class="region-icon">${icon}</div>
+      <div class="region-label">L&D Center — ${region} Region</div>
+      <div class="region-val">${enrolled.toLocaleString()}</div>
+      <div class="region-sub">${uniqueEmps.toLocaleString()} unique employees · from ${clustersServed} cluster${clustersServed!==1?'s':''}</div>
+      <div class="region-stats">
+        <div class="r-stat"><div class="r-stat-val">${attended.toLocaleString()}</div><div class="r-stat-lbl">Attended</div></div>
+        <div class="r-stat"><div class="r-stat-val">${programs}</div><div class="r-stat-lbl">Programs</div></div>
+        <div class="r-stat"><div class="r-stat-val">${Math.round(hours).toLocaleString()}</div><div class="r-stat-lbl">Hours</div></div>
+        <div class="r-stat"><div class="r-stat-val">${clustersServed}</div><div class="r-stat-lbl">Clusters</div></div>
+      </div>
+      <div class="region-bar">
+        <div class="region-bar-track"><div class="region-bar-fill" style="width:${rate}%"></div></div>
+        <span class="region-rate-lbl">${rate}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderClusters() {
   // CHANGE 4: Sort clusters — conventional/normal first, IBG clusters last
   const rawClusters = [...new Set(filteredData.map(r=>norm(r.Cluster)).filter(Boolean))]
