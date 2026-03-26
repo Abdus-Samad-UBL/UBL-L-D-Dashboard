@@ -437,7 +437,6 @@ function normalizeRow(r) {
     'pop code': 'POP Code',
     'region': 'Region',
     'cluster': 'Cluster',
-    'region': 'Cluster',
     'attendance status': 'Attendance Status',
     'status': 'Attendance Status',
     'modules': 'Modules',
@@ -482,7 +481,7 @@ function normalizeRow(r) {
 }
 
 // ── COLUMN MAP DISPLAY ───────────────────────────────────
-const EXPECTED_COLS = ['Employee No.','Employee Name','Functional Title','Grade','Group','POP Code','Cluster','Attendance Status','Modules','Course Title','Delivery Mode','Training Type','Training Status','From','To','Duration','Working Hours','Category'];
+const EXPECTED_COLS = ['Employee No.','Employee Name','Functional Title','Grade','Group','POP Code','Region','Cluster','Attendance Status','Modules','Course Title','Delivery Mode','Training Type','Training Status','From','To','Duration','Working Hours','Category'];
 
 function renderColumnMap(foundCols) {
   const found = foundCols.map(c => c.trim().toLowerCase());
