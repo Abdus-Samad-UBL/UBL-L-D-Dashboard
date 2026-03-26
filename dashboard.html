@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
 :root {
   --ubl:#0175C0; --ubl-dark:#015a94; --ubl-deeper:#01406b;
@@ -252,6 +253,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
   </div>
   <div class="filter-group">
+    <span class="filter-label">Region</span>
+    <select class="filter-select" id="regionFilter" onchange="applyFilters()">
+      <option value="all">All Regions</option>
+    </select>
+  </div>
+  <div class="filter-group">
     <span class="filter-label">Cluster</span>
     <select class="filter-select" id="clusterFilter" onchange="applyFilters()">
       <option value="all">All Clusters</option>
@@ -328,7 +335,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="info-row">
       <div class="info-chip"><div class="info-chip-icon">🪪</div><div><div class="info-chip-val" id="kpi-uniqueEmp">0</div><div class="info-chip-lbl">Unique Employees (by Employee ID)</div></div></div>
-      <div class="info-chip"><div class="info-chip-icon">🧩</div><div><div class="info-chip-val" id="kpi-modules">0</div><div class="info-chip-lbl">Distinct Modules Delivered</div></div></div>
       <div class="info-chip"><div class="info-chip-icon">📅</div><div><div class="info-chip-val" id="kpi-avgTrainings">0</div><div class="info-chip-lbl">Avg Course Enrolments per Employee</div></div></div>
     </div>
 
@@ -379,7 +385,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       </div>
       <div style="overflow-x:auto">
         <table class="att-table">
-          <thead><tr><th>Course Title</th><th>Modules</th><th>Category</th><th>Delivery</th><th>Enrolled</th><th>Attended</th><th>Unique Employees</th><th>Attendance Rate</th><th>Duration</th></tr></thead>
+          <thead><tr><th>Course Title</th><th>Modules</th><th>Category</th><th>Delivery</th><th>Enrolled</th><th>Attended</th><th>Attendance Rate</th><th>Duration</th></tr></thead>
           <tbody id="courseTableBody"></tbody>
         </table>
       </div>
@@ -448,7 +454,7 @@ const BK_ICONS  = { ibg:'🕌', conv:'🏦', ho:'🏢' };
 // ════════════════════════════════════════════════════════
 let allData=[], filteredData=[], charts={};
 let currentView='month', currentMonth='all', currentQuarter='all',
-    currentBanking='all', currentCluster='all', currentCategory='all', currentDelivery='all';
+    currentBanking='all', currentRegion='all', currentCluster='all', currentCategory='all', currentDelivery='all';
 
 // ════════════════════════════════════════════════════════
 // INIT
@@ -477,6 +483,12 @@ function populateFilters() {
   const mSel = document.getElementById('monthFilter');
   mSel.innerHTML = '<option value="all">All Months</option>';
   months.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
+
+  // Region filter (South / Central / North learning centers)
+  const regions = [...new Set(allData.map(r=>norm(r['Region'])).filter(Boolean))].sort();
+  const rSel = document.getElementById('regionFilter');
+  rSel.innerHTML = '<option value="all">All Regions</option>';
+  regions.forEach(r => rSel.innerHTML += `<option value="${r}">${r}</option>`);
 
   // Use raw value for filter matching, but cleanCluster() for display
   const rawClusters = [...new Set(allData.map(r=>norm(r.Cluster)).filter(Boolean))].sort();
@@ -541,17 +553,19 @@ function setBanking(bk,el) {
 
 function applyFilters() {
   currentMonth    = document.getElementById('monthFilter').value;
+  currentRegion   = document.getElementById('regionFilter').value;
   currentCluster  = document.getElementById('clusterFilter').value;
   currentCategory = document.getElementById('categoryFilter').value;
   currentDelivery = document.getElementById('deliveryFilter').value;
 
   filteredData = allData.filter(r => {
-    if (currentView==='month'   && currentMonth!=='all'   && r._month!==currentMonth)     return false;
-    if (currentView==='quarter' && currentQuarter!=='all' && r._quarter!==currentQuarter) return false;
-    if (currentBanking!=='all'  && r._bankingType!==currentBanking)                       return false;
-    if (currentCluster!=='all'  && norm(r.Cluster)!==currentCluster)                      return false;
-    if (currentCategory!=='all' && norm(r.Category)!==currentCategory)                    return false;
-    if (currentDelivery!=='all' && norm(r['Delivery Mode'])!==currentDelivery)            return false;
+    if (currentView==='month'   && currentMonth!=='all'   && r._month!==currentMonth)       return false;
+    if (currentView==='quarter' && currentQuarter!=='all' && r._quarter!==currentQuarter)   return false;
+    if (currentBanking!=='all'  && r._bankingType!==currentBanking)                         return false;
+    if (currentRegion!=='all'   && norm(r['Region'])!==currentRegion)                       return false;
+    if (currentCluster!=='all'  && norm(r.Cluster)!==currentCluster)                        return false;
+    if (currentCategory!=='all' && norm(r.Category)!==currentCategory)                      return false;
+    if (currentDelivery!=='all' && norm(r['Delivery Mode'])!==currentDelivery)              return false;
     return true;
   });
 
@@ -577,8 +591,12 @@ function buildLabel() {
 function renderKPIs() {
   const enrolled   = filteredData.filter(isEnrolled).length;
   const attended   = filteredData.filter(isAttended).length;
-  // RULE 4: unique Course Titles (N/A excluded from unique course count)
-  const courses    = new Set(filteredData.map(r=>norm(r['Course Title'])).filter(v=>v&&v.toLowerCase()!=='n/a')).size;
+  // CHANGE 2: Programs counted as Course Title + Region combos
+  // Same program running simultaneously in different regions = separate programs
+  const courses    = new Set(filteredData.map(r=>{
+    const ct=norm(r['Course Title']); const rg=norm(r['Region']);
+    return (ct&&ct.toLowerCase()!=='n/a') ? `${ct}||${rg}` : null;
+  }).filter(Boolean)).size;
   const hours      = filteredData.reduce((s,r)=>s+(parseFloat(r['Working Hours'])||0),0);
   const rate       = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
   // RULE 3+4: unique employees by Employee No. (even with N/A other fields)
@@ -594,7 +612,6 @@ function renderKPIs() {
   animCount('kpi-hours',    Math.round(hours));
   document.getElementById('kpi-attrate').textContent = rate+'%';
   animCount('kpi-uniqueEmp', uniqueEmps);
-  animCount('kpi-modules',   modules);
   document.getElementById('kpi-avgTrainings').textContent = avgTrainings;
   document.getElementById('kpi1sub').textContent = `All invited employees (attended + not attended)`;
   document.getElementById('kpi2sub').textContent = `Invited employees who confirmed attendance`;
@@ -610,7 +627,7 @@ function renderBankingCards() {
     const enrolled = d.filter(isEnrolled).length;
     const attended = d.filter(isAttended).length;
     const unique   = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
-    const courses  = new Set(d.map(r=>norm(r['Course Title'])).filter(v=>v&&v.toLowerCase()!=='n/a')).size;
+    const courses  = new Set(d.map(r=>{const ct=norm(r['Course Title']),rg=norm(r['Region']);return(ct&&ct.toLowerCase()!=='n/a')?`${ct}||${rg}`:null;}).filter(Boolean)).size;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const hours    = d.reduce((s,r)=>s+(parseFloat(r['Working Hours'])||0),0);
     return `<div class="banking-card ${seg}">
@@ -633,14 +650,22 @@ function renderBankingCards() {
 // CLUSTER CARDS  (RULE 1 — clean display name)
 // ════════════════════════════════════════════════════════
 function renderClusters() {
-  const rawClusters = [...new Set(filteredData.map(r=>norm(r.Cluster)).filter(Boolean))].sort();
+  // CHANGE 4: Sort clusters — conventional/normal first, IBG clusters last
+  const rawClusters = [...new Set(filteredData.map(r=>norm(r.Cluster)).filter(Boolean))]
+    .sort((a,b) => {
+      const aIBG = a.toUpperCase().includes('IBG');
+      const bIBG = b.toUpperCase().includes('IBG');
+      if (aIBG && !bIBG) return 1;
+      if (!aIBG && bIBG) return -1;
+      return a.localeCompare(b);
+    });
   const colors = ['#0175C0','#059669','#d97706','#7c3aed','#dc2626','#0891b2','#be185d','#b45309'];
   document.getElementById('clusterRow').innerHTML = rawClusters.map((raw,i) => {
     const d        = filteredData.filter(r=>norm(r.Cluster)===raw);
     const enrolled = d.filter(isEnrolled).length;
     const attended = d.filter(isAttended).length;
     const unique   = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
-    const courses  = new Set(d.map(r=>norm(r['Course Title'])).filter(v=>v&&v.toLowerCase()!=='n/a')).size;
+    const courses  = new Set(d.map(r=>{const ct=norm(r['Course Title']),rg=norm(r['Region']);return(ct&&ct.toLowerCase()!=='n/a')?`${ct}||${rg}`:null;}).filter(Boolean)).size;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const color    = colors[i%colors.length];
     const display  = cleanCluster(raw); // RULE 1
@@ -694,10 +719,38 @@ function renderMonthlyTrend(){
 function donut(id,data,colors){
   dc(id);
   const keys=Object.keys(data); if(!keys.length)return;
+  const vals=Object.values(data);
+  const total=vals.reduce((s,v)=>s+v,0);
   charts[id]=new Chart(document.getElementById(id),{
     type:'doughnut',
-    data:{labels:keys,datasets:[{data:Object.values(data),backgroundColor:colors||PALETTE,borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{font:{family:'Plus Jakarta Sans',size:11},color:'#5a7389',boxWidth:10,boxHeight:10,padding:8}},tooltip:TTP}}
+    data:{labels:keys,datasets:[{data:vals,backgroundColor:colors||PALETTE,borderColor:'#fff',borderWidth:3,hoverOffset:6}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{
+        legend:{position:'bottom',labels:{font:{family:'Plus Jakarta Sans',size:11},color:'#5a7389',boxWidth:10,boxHeight:10,padding:8}},
+        tooltip:{
+          ...TTP,
+          callbacks:{
+            label: ctx => {
+              const pct=total>0?((ctx.parsed/total)*100).toFixed(1):0;
+              return ` ${ctx.label}: ${ctx.parsed.toLocaleString()} (${pct}%)`;
+            }
+          }
+        },
+        datalabels:{
+          color:'#fff',
+          font:{family:'Plus Jakarta Sans',size:11,weight:'700'},
+          formatter:(val)=>{
+            const pct=total>0?((val/total)*100):0;
+            return pct>=5?Math.round(pct)+'%':''; // hide label if slice too small
+          },
+          textShadow: true,
+          textStrokeColor:'rgba(0,0,0,0.3)',
+          textStrokeWidth:2,
+        }
+      }
+    },
+    plugins:[ChartDataLabels]
   });
 }
 
@@ -774,7 +827,6 @@ function renderCourseTable(){
       <td>${r.del.toLowerCase()==='n/a'?`<span class="na-pill">N/A</span>`:r.del}</td>
       <td><strong>${r.enrolled.toLocaleString()}</strong></td>
       <td>${r.attended.toLocaleString()}</td>
-      <td>${r.unique.toLocaleString()}</td>
       <td>
         <div class="att-bar-wrap">
           <div class="att-bar-track"><div class="att-bar-fill" style="width:${r.rate}%;background:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'}"></div></div>
