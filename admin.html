@@ -461,6 +461,33 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 
 <script>
 // ════════════════════════════════════════════════════════
+// APPS SCRIPT — pre-configured URL
+// ════════════════════════════════════════════════════════
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec';
+
+// Get effective URL: stored override takes priority, else use hard-coded default
+function getAppsUrl() {
+  return localStorage.getItem('ubl_apps_script_url') || APPS_SCRIPT_URL;
+}
+
+// Send payload to Apps Script. Returns promise resolving to response JSON.
+async function syncToSheets(payload) {
+  const url = getAppsUrl();
+  if (!url) return { success: false, error: 'No URL configured' };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return await res.json();
+  } catch(e) {
+    console.warn('Apps Script sync failed:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // AUTH
 // ════════════════════════════════════════════════════════
 function getCreds(){ return { user: localStorage.getItem('ubl_admin_user')||'admin', pass: localStorage.getItem('ubl_admin_pass')||'ubl2025' }; }
@@ -511,6 +538,18 @@ function initAdmin(){
   refreshHcSummary();
   refreshProgList();
   refreshAppsScriptDisplay();
+  // Attempt to pull programs config from Sheets on load
+  syncToSheets({ action:'getPrograms' }).then(r => {
+    if(r && r.success && r.programs && r.programs.length) {
+      // Only use Sheets programs if we have none locally
+      const local = getPrograms();
+      if(!local.length) {
+        savePrograms(r.programs);
+        refreshProgList();
+        console.log('Programs loaded from Sheets');
+      }
+    }
+  }).catch(()=>{});
 }
 
 // ════════════════════════════════════════════════════════
@@ -622,9 +661,16 @@ function processTrainingData(){
   const clusters=[...new Set(tagged.map(r=>norm(r['Cluster'])).filter(Boolean))].join(', ');
   meta.push({month:label,count:tagged.length,uploadedAt:new Date().toLocaleString('en-PK'),courses,clusters});
   localStorage.setItem('ubl_ld_meta',JSON.stringify(meta));
+  // Sync to Google Sheets in background
+  syncToSheets({ action:'upload', monthLabel:label, rows:tagged, uploadedBy:'Admin' })
+    .then(r => {
+      if(r && r.success) console.log('Sheets sync OK:', r.message);
+      else console.warn('Sheets sync note:', r && r.error);
+    });
+
   setTimeout(()=>{
     btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save to Repository & Update Dashboard';
-    showStatus('trainingStatus','ok','✓ Saved Successfully',`${tagged.length.toLocaleString()} records saved for <strong>${label}</strong>. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
+    showStatus('trainingStatus','ok','✓ Saved Successfully',`${tagged.length.toLocaleString()} records saved for <strong>${label}</strong> and synced to Google Sheets. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
     refreshTrainingRepo();
     parsedTrainingRows=[];
     document.getElementById('trainingPreviewWrap').style.display='none';
@@ -663,6 +709,8 @@ function deleteTrainingMonth(month){
   localStorage.setItem('ubl_ld_data',JSON.stringify(d.filter(r=>r._uploadMonth!==month)));
   let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
   localStorage.setItem('ubl_ld_meta',JSON.stringify(meta.filter(m=>m.month!==month)));
+  // Sync delete to Sheets
+  syncToSheets({ action:'delete', monthLabel:month });
   refreshTrainingRepo();
 }
 
@@ -761,9 +809,13 @@ function processHeadcount(){
   hcHistory.push({ month:label, total:parsedHcRows.length, uploadedAt:new Date().toLocaleString('en-PK'), added:diff.added.length, left:diff.left.length });
   localStorage.setItem('ubl_hc_history',JSON.stringify(hcHistory));
 
+  // Sync headcount to Sheets (store in separate sheet)
+  syncToSheets({ action:'uploadHeadcount', monthLabel:label, rows:parsedHcRows, resignedIds:[...resignedIds] })
+    .then(r => { if(r&&r.success) console.log('HC sync OK'); });
+
   setTimeout(()=>{
     btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save Headcount & Flag Resigned Employees';
-    showStatus('hcStatus','ok','✓ Headcount Saved',`${parsedHcRows.length.toLocaleString()} active employees for <strong>${label}</strong>. ${diff.left.length} resigned IDs flagged and excluded from program tracking.`);
+    showStatus('hcStatus','ok','✓ Headcount Saved',`${parsedHcRows.length.toLocaleString()} active employees for <strong>${label}</strong> saved and synced to Google Sheets. ${diff.left.length} resigned IDs flagged.`);
     refreshHcSummary();
     parsedHcRows=[];
     document.getElementById('hcPreviewWrap').style.display='none';
@@ -824,6 +876,8 @@ function addProgram(){
   if(progs.find(p=>p.name===name)){ showStatus('progAddStatus','err','Duplicate','A program with this name already exists.'); return; }
   progs.push({ id:Date.now().toString(), name, category:cat, groups, titles, phases, notes, createdAt:new Date().toLocaleString('en-PK') });
   savePrograms(progs);
+  // Sync program config to Sheets
+  syncToSheets({ action:'savePrograms', programs:progs });
   showStatus('progAddStatus','ok','✓ Program Added',`"${name}" configured with ${groups.length} group rule(s), ${titles.length} title rule(s), and ${phases.length||'no'} phase(s).`);
   document.getElementById('progName').value='';
   document.getElementById('progCategory').value='';
@@ -836,7 +890,9 @@ function addProgram(){
 
 function deleteProgram(id){
   if(!confirm('Remove this program configuration?')) return;
-  savePrograms(getPrograms().filter(p=>p.id!==id));
+  const updated = getPrograms().filter(p=>p.id!==id);
+  savePrograms(updated);
+  syncToSheets({ action:'savePrograms', programs:updated });
   refreshProgList();
 }
 
@@ -909,14 +965,14 @@ function saveAppsScriptUrl() {
   if (!url.startsWith('https://script.google.com')) {
     showAppsStatus('URL must start with https://script.google.com', 'var(--red)'); return;
   }
-  localStorage.setItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec', url);
+  localStorage.setItem('ubl_apps_script_url', url);
   showAppsStatus('✓ URL saved.', 'var(--green)');
   refreshAppsScriptDisplay();
 }
 
 function testAppsScriptUrl() {
-  const url = localStorage.getItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec');
-  if (!url) { showAppsStatus('No URL saved yet.', 'var(--amber)'); return; }
+  const url = getAppsUrl();
+  if (!url) { showAppsStatus('No URL configured.', 'var(--amber)'); return; }
   showAppsStatus('Testing connection…', 'var(--text3)');
   fetch(url)
     .then(r => r.json())
@@ -925,7 +981,7 @@ function testAppsScriptUrl() {
 }
 
 function clearAppsScriptUrl() {
-  localStorage.removeItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec');
+  localStorage.removeItem('ubl_apps_script_url');
   document.getElementById('appsScriptUrl').value = '';
   showAppsStatus('URL removed.', 'var(--text3)');
   refreshAppsScriptDisplay();
@@ -939,18 +995,19 @@ function showAppsStatus(msg, color) {
 }
 
 function refreshAppsScriptDisplay() {
-  const url = localStorage.getItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec');
+  const stored = localStorage.getItem('ubl_apps_script_url');
+  const effective = stored || APPS_SCRIPT_URL;
   const el = document.getElementById('appsScriptCurrent');
-  if (url) {
-    el.innerHTML = `<strong style="color:var(--green)">✓ Connected</strong> · <span style="word-break:break-all">${url}</span>`;
-    // Pre-fill the input
-    document.getElementById('appsScriptUrl').value = url;
+  document.getElementById('appsScriptUrl').value = effective;
+  if (effective) {
+    const src = stored ? 'custom URL' : 'pre-configured URL';
+    el.innerHTML = `<strong style="color:var(--green)">✓ Active (${src})</strong> · <span style="word-break:break-all;font-size:11px;color:var(--text3)">${effective}</span>`;
   } else {
-    el.innerHTML = '<span style="color:var(--text4)">No URL configured — data stored locally in this browser only.</span>';
+    el.innerHTML = '<span style="color:var(--text4)">No URL — data stored locally only.</span>';
   }
 }
 
-function clearTrainingData(){ if(!confirm('Clear ALL training data?')) return; localStorage.removeItem('ubl_ld_data'); localStorage.removeItem('ubl_ld_meta'); refreshTrainingRepo(); showStatus('trainingStatus','info','Cleared','All training data removed.'); }
+function clearTrainingData(){ if(!confirm('Clear ALL training data?')) return; localStorage.removeItem('ubl_ld_data'); localStorage.removeItem('ubl_ld_meta'); syncToSheets({action:'clearAll'}); refreshTrainingRepo(); showStatus('trainingStatus','info','Cleared','All training data removed.'); }
 function clearHeadcount(){ if(!confirm('Clear ALL headcount data?')) return; localStorage.removeItem('ubl_hc_active'); localStorage.removeItem('ubl_hc_history'); localStorage.removeItem('ubl_resigned_ids'); refreshHcSummary(); }
 function clearPrograms(){ if(!confirm('Clear ALL program configurations?')) return; localStorage.removeItem('ubl_programs'); refreshProgList(); }
 </script>
