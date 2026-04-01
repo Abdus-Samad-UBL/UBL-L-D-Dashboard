@@ -4,193 +4,191 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>UBL L&D — Admin Panel</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root {
-  --ubl: #0175C0;
-  --ubl-dark: #015a94;
-  --ubl-deeper: #01406b;
-  --ubl-light: #e8f4fd;
-  --bg: #f0f4f8;
-  --surface: #ffffff;
-  --border: #dde6ef;
-  --border2: #c8d9e8;
-  --text: #0d1f2d;
-  --text-muted: #5a7389;
-  --text-dim: #8faabb;
-  --green: #059669;
-  --green-bg: #ecfdf5;
-  --red: #dc2626;
-  --red-bg: #fef2f2;
-  --amber: #d97706;
-  --shadow: 0 4px 24px rgba(1,64,107,0.12);
-  --shadow-sm: 0 1px 4px rgba(1,64,107,0.08);
-  --radius: 16px;
+  --ubl:#0175C0;--ubl-dark:#015494;--ubl-deeper:#012d52;
+  --ubl-tint:#e8f4fd;--ubl-glass:rgba(1,117,192,0.08);
+  --bg:#f4f7fb;--bg2:#edf1f7;--surface:#fff;
+  --border:#e3e9f2;--border2:#d0daea;
+  --text:#0c1a27;--text2:#3d5166;--text3:#7a90a4;--text4:#aabccc;
+  --green:#0a8f5c;--green-t:#eafaf3;
+  --red:#d03030;--red-t:#fff0f0;
+  --amber:#c47500;--amber-t:#fff8ec;
+  --sh-sm:0 2px 8px rgba(1,45,82,0.08),0 1px 2px rgba(1,45,82,0.04);
+  --sh-md:0 6px 24px rgba(1,45,82,0.10);
+  --sh-ubl:0 4px 16px rgba(1,117,192,0.25);
+  --r:12px;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; min-height: 100vh; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13.5px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
 
 /* TOPBAR */
-.topbar {
-  background: linear-gradient(135deg, var(--ubl-deeper), var(--ubl) 60%, #0199e0);
-  padding: 0 32px;
-  display: flex; align-items: center; justify-content: space-between;
-  height: 64px;
-  box-shadow: 0 2px 20px rgba(1,64,107,0.3);
-}
-.logo-wrap { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-.logo-box { width: 38px; height: 38px; background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.35); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'Instrument Serif', serif; font-size: 15px; color: #fff; }
-.logo-text { display: flex; flex-direction: column; }
-.logo-main { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
-.logo-sub { font-size: 10px; color: rgba(255,255,255,0.7); letter-spacing: 1.2px; text-transform: uppercase; }
-.topbar-right { display: flex; align-items: center; gap: 10px; }
-.btn-outline { padding: 7px 16px; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.3); border-radius: 8px; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-.btn-outline:hover { background: rgba(255,255,255,0.2); }
+.topbar{background:linear-gradient(135deg,#012240,#014a82 45%,#0175C0);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:60px;box-shadow:var(--sh-md);position:sticky;top:0;z-index:200}
+.logo-wrap{display:flex;align-items:center;gap:11px;text-decoration:none}
+.logo-box{width:36px;height:36px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#fff}
+.logo-name{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:#fff;line-height:1.2}
+.logo-sub{font-size:9.5px;color:rgba(255,255,255,0.55);letter-spacing:1.3px;text-transform:uppercase}
+.tb-right{display:flex;align-items:center;gap:10px}
+.tb-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.18s;white-space:nowrap}
+.tb-ghost{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);color:rgba(255,255,255,0.9)}
+.tb-ghost:hover{background:rgba(255,255,255,0.16)}
+.tb-solid{background:#fff;border:none;color:var(--ubl);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.tb-solid:hover{background:var(--ubl-tint)}
 
-/* LOGIN OVERLAY */
-.login-overlay {
-  position: fixed; inset: 0;
-  background: linear-gradient(135deg, var(--ubl-deeper) 0%, var(--ubl) 100%);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 200;
-}
-.login-card {
-  background: #fff; border-radius: 20px; padding: 48px 44px;
-  width: 100%; max-width: 420px;
-  box-shadow: 0 24px 80px rgba(1,40,80,0.35);
-  text-align: center;
-}
-.login-logo { font-family: 'Instrument Serif', serif; font-size: 28px; color: var(--ubl); margin-bottom: 6px; }
-.login-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
-.login-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); text-align: left; margin-bottom: 6px; display: block; }
-.login-input {
-  width: 100%; padding: 12px 16px;
-  border: 1.5px solid var(--border); border-radius: 10px;
-  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px;
-  color: var(--text); outline: none; transition: border-color 0.2s; margin-bottom: 16px;
-}
-.login-input:focus { border-color: var(--ubl); }
-.login-btn {
-  width: 100%; padding: 13px;
-  background: var(--ubl); color: #fff; border: none; border-radius: 10px;
-  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700;
-  cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
-}
-.login-btn:hover { background: var(--ubl-dark); }
-.login-error { font-size: 12px; color: var(--red); display: none; margin-top: -8px; margin-bottom: 12px; }
+/* LOGIN */
+.login-overlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--ubl-deeper),var(--ubl));display:flex;align-items:center;justify-content:center;z-index:300}
+.login-card{background:#fff;border-radius:20px;padding:48px 44px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(1,40,80,0.35);text-align:center}
+.login-logo{font-family:'Sora',sans-serif;font-size:26px;font-weight:800;color:var(--ubl);margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:28px}
+.login-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);text-align:left;margin-bottom:5px;display:block}
+.login-input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'Inter',sans-serif;font-size:13.5px;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;margin-bottom:14px}
+.login-input:focus{border-color:var(--ubl);box-shadow:0 0 0 3px var(--ubl-glass)}
+.login-btn{width:100%;padding:12px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-bottom:10px;box-shadow:var(--sh-ubl)}
+.login-btn:hover{background:var(--ubl-dark)}
+.login-err{font-size:12px;color:var(--red);display:none;margin-bottom:10px}
 
-/* MAIN */
-.page { padding: 32px; max-width: 1100px; margin: 0 auto; }
-.page-title { font-family: 'Instrument Serif', serif; font-size: 26px; font-weight: 400; color: var(--text); margin-bottom: 4px; }
-.page-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+/* TABS */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:0;position:sticky;top:60px;z-index:100;box-shadow:0 1px 4px rgba(1,45,82,0.05)}
+.tab{padding:14px 20px;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2.5px solid transparent;transition:all 0.18s;display:flex;align-items:center;gap:7px;white-space:nowrap;user-select:none}
+.tab:hover{color:var(--text2);background:var(--bg)}
+.tab.on{color:var(--ubl);border-bottom-color:var(--ubl)}
+.tab-icon{font-size:15px}
 
-/* SECTION HEADING */
-.sec-hdr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-dim); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-.sec-hdr::before { content:''; width:3px; height:13px; background:var(--ubl); border-radius:2px; }
+/* PAGE */
+.page{padding:28px;max-width:1100px;margin:0 auto;display:none}
+.page.on{display:block}
+.page-h{font-family:'Sora',sans-serif;font-size:22px;font-weight:700;color:var(--text);margin-bottom:3px}
+.page-sub{font-size:13px;color:var(--text3);margin-bottom:24px}
 
-/* UPLOAD CARD */
-.upload-card {
-  background: var(--surface); border: 2px dashed var(--border2); border-radius: var(--radius);
-  padding: 40px; text-align: center; margin-bottom: 16px;
-  cursor: pointer; transition: all 0.2s;
-}
-.upload-card:hover, .upload-card.drag-over { border-color: var(--ubl); background: var(--ubl-light); }
-.upload-icon { font-size: 40px; margin-bottom: 12px; }
-.upload-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.upload-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
-.upload-btn-label {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 10px 24px; background: var(--ubl); color: #fff;
-  border-radius: 10px; font-size: 13px; font-weight: 700;
-  cursor: pointer; transition: all 0.2s;
-}
-.upload-btn-label:hover { background: var(--ubl-dark); }
-#fileInput { display: none; }
+/* SECTION */
+.sec{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text4);margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.sec::before{content:'';width:3px;height:13px;background:var(--ubl);border-radius:2px}
 
-/* MONTH INPUT */
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-.field-group { display: flex; flex-direction: column; gap: 6px; }
-.field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
-.field-input {
-  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px;
-  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: var(--text);
-  outline: none; transition: border-color 0.2s; background: var(--surface);
-}
-.field-input:focus { border-color: var(--ubl); }
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh-sm);margin-bottom:16px}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh-sm)}
+.stat-val{font-family:'Sora',sans-serif;font-size:26px;font-weight:800;color:var(--ubl);line-height:1;margin-bottom:2px}
+.stat-lbl{font-size:11px;color:var(--text3);font-weight:500}
+
+/* UPLOAD ZONE */
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:36px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg);margin-bottom:14px}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--ubl);background:var(--ubl-tint)}
+.drop-icon{font-size:36px;margin-bottom:10px}
+.drop-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px}
+.drop-sub{font-size:12.5px;color:var(--text3);margin-bottom:16px}
+.drop-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;background:var(--ubl);color:#fff;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:var(--sh-ubl)}
+.drop-btn:hover{background:var(--ubl-dark)}
+input[type=file]{display:none}
+
+/* FIELDS */
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3)}
+.field-inp{padding:9px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;background:var(--surface)}
+.field-inp:focus{border-color:var(--ubl);box-shadow:0 0 0 3px var(--ubl-glass)}
+textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-serif}
 
 /* STATUS */
-.status-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 20px; margin-bottom: 16px; display: none;
-}
-.status-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
-.status-body { font-size: 13px; color: var(--text-muted); line-height: 1.8; }
-.status-card.success { border-color: #6ee7b7; background: var(--green-bg); }
-.status-card.error { border-color: #fca5a5; background: var(--red-bg); }
-.status-card.info { border-color: var(--border2); background: var(--ubl-light); }
+.status-box{border-radius:var(--r);padding:14px 18px;margin-bottom:14px;display:none;font-size:13px;line-height:1.6}
+.status-box.ok{background:var(--green-t);border:1px solid #9de0c0;color:#065f46}
+.status-box.err{background:var(--red-t);border:1px solid #fca5a5;color:#7f1d1d}
+.status-box.info{background:var(--ubl-tint);border:1px solid #93c5fd;color:var(--ubl-dark)}
+.status-box.warn{background:var(--amber-t);border:1px solid #fcd34d;color:#78350f}
+.status-title{font-weight:700;margin-bottom:4px}
 
-/* PROCESS BTN */
-.process-btn {
-  width: 100%; padding: 14px;
-  background: var(--ubl); color: #fff; border: none; border-radius: 10px;
-  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700;
-  cursor: pointer; transition: all 0.2s; margin-bottom: 16px; display: none;
-  align-items: center; justify-content: center; gap: 10px;
-}
-.process-btn:hover { background: var(--ubl-dark); transform: translateY(-1px); box-shadow: var(--shadow); }
-.process-btn:disabled { background: var(--text-dim); cursor: not-allowed; transform: none; box-shadow: none; }
+/* PROGRESS */
+.prog-bar{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden;display:none}
+.prog-fill{height:100%;background:var(--ubl);border-radius:2px;transition:width 0.3s}
 
-/* PREVIEW TABLE */
-.preview-wrap { overflow-x: auto; margin-top: 12px; }
-.preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.preview-table th { background: var(--ubl); color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; white-space: nowrap; }
-.preview-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); white-space: nowrap; }
-.preview-table tr:hover td { background: var(--ubl-light); }
+/* ACTION BTN */
+.action-btn{width:100%;padding:13px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;display:none;align-items:center;justify-content:center;gap:8px;box-shadow:var(--sh-ubl);margin-bottom:14px}
+.action-btn:hover{background:var(--ubl-dark);transform:translateY(-1px)}
+.action-btn:disabled{background:var(--text4);cursor:not-allowed;transform:none;box-shadow:none}
 
-/* REPOSITORY TABLE */
-.repo-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.repo-table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); padding: 0 12px 10px; border-bottom: 1px solid var(--border); text-align: left; }
-.repo-table td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); vertical-align: middle; }
-.repo-table tr:last-child td { border-bottom: none; }
-.repo-table tr:hover td { background: var(--ubl-light); }
-.del-btn { padding: 4px 10px; background: var(--red-bg); color: var(--red); border: 1px solid #fca5a5; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'Plus Jakarta Sans', sans-serif; }
-.del-btn:hover { background: var(--red); color: #fff; }
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text4);padding:0 12px 10px;border-bottom:1px solid var(--border);text-align:left}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg)}
+.del-btn{padding:3px 10px;background:var(--red-t);color:var(--red);border:1px solid #fca5a5;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s}
+.del-btn:hover{background:var(--red);color:#fff}
 
-/* PROGRESS BAR */
-.progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 12px; overflow: hidden; display: none; }
-.progress-fill { height: 100%; background: var(--ubl); border-radius: 2px; transition: width 0.3s; }
+/* PREVIEW */
+.preview-wrap{overflow-x:auto;margin-top:10px}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px}
+.preview-table th{background:var(--ubl);color:#fff;padding:8px 12px;text-align:left;font-weight:600;white-space:nowrap}
+.preview-table td{padding:7px 12px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap}
+.preview-table tr:hover td{background:var(--ubl-tint)}
 
-/* CARDS GRID */
-.info-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 24px; }
-.info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
-.info-val { font-size: 28px; font-weight: 800; color: var(--ubl); font-family: 'Instrument Serif', serif; margin-bottom: 2px; }
-.info-lbl { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+/* COL MAP */
+.col-map{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}
+.col-item{background:var(--ubl-tint);border-radius:8px;padding:7px 12px;display:flex;justify-content:space-between;align-items:center}
+.col-name{font-size:12px;font-weight:600;color:var(--ubl)}
+.col-ok{color:var(--green);font-size:11px;font-weight:600}
+.col-miss{color:var(--amber);font-size:11px;font-weight:600}
 
-/* COLUMN MAP */
-.col-map { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.col-item { background: var(--ubl-light); border-radius: 8px; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center; }
-.col-name { font-size: 12px; font-weight: 600; color: var(--ubl); }
-.col-status { font-size: 11px; }
-.col-ok { color: var(--green); }
-.col-miss { color: var(--amber); }
+/* PROGRAM CONFIG */
+.prog-list{display:flex;flex-direction:column;gap:12px}
+.prog-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh-sm)}
+.prog-item-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.prog-item-name{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:var(--text)}
+.prog-item-cat{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:var(--ubl-tint);color:var(--ubl)}
+.prog-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.prog-meta-item{background:var(--bg);border-radius:8px;padding:9px 12px}
+.prog-meta-lbl{font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px}
+.prog-meta-val{font-size:12.5px;color:var(--text2);font-weight:500}
+.prog-phases{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.phase-chip{padding:3px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;font-size:11px;color:var(--text3);font-weight:500}
+
+/* AUDIENCE RULE */
+.aud-rules{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.aud-rule{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+.aud-rule-lbl{font-size:11px;font-weight:700;color:var(--text3);min-width:60px}
+.aud-rule-val{font-size:12px;color:var(--text)}
+
+/* DIFF BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-new{background:#ecfdf5;color:#065f46}
+.badge-resign{background:var(--red-t);color:var(--red)}
+.badge-ok{background:var(--ubl-tint);color:var(--ubl)}
+
+/* HEADCOUNT DIFF */
+.diff-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.diff-card{border-radius:9px;padding:12px 14px;text-align:center}
+.diff-card.same{background:#f0fdf4;border:1px solid #86efac}
+.diff-card.added{background:var(--ubl-tint);border:1px solid #93c5fd}
+.diff-card.left{background:var(--red-t);border:1px solid #fca5a5}
+.diff-num{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;line-height:1}
+.diff-lbl{font-size:10.5px;font-weight:600;margin-top:3px}
+.diff-card.same .diff-num{color:#16a34a}
+.diff-card.same .diff-lbl{color:#15803d}
+.diff-card.added .diff-num{color:var(--ubl)}
+.diff-card.added .diff-lbl{color:var(--ubl-dark)}
+.diff-card.left .diff-num{color:var(--red)}
+.diff-card.left .diff-lbl{color:#991b1b}
+
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 </style>
 </head>
 <body>
 
-<!-- LOGIN OVERLAY -->
+<!-- LOGIN -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-card">
     <div class="login-logo">UBL L&D</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Admin Panel</div>
-    <div class="login-sub">Enter your credentials to access the data management panel</div>
+    <div class="login-sub">Admin Panel — Sign in to continue</div>
     <label class="login-label">Username</label>
     <input class="login-input" type="text" id="loginUser" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()"/>
     <label class="login-label">Password</label>
     <input class="login-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
-    <div class="login-error" id="loginErr">Incorrect username or password.</div>
+    <div class="login-err" id="loginErr">Incorrect username or password.</div>
     <button class="login-btn" onclick="doLogin()">Sign In →</button>
-    <div style="font-size:11px;color:var(--text-dim)">Default: admin / ubl2025 (change in settings)</div>
+    <div style="font-size:11px;color:var(--text4)">Default: admin / ubl2025</div>
   </div>
 </div>
 
@@ -198,453 +196,690 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); colo
 <div class="topbar">
   <div class="logo-wrap">
     <div class="logo-box">UBL</div>
-    <div class="logo-text">
-      <span class="logo-main">L&D Admin</span>
-      <span class="logo-sub">Data Management Panel</span>
+    <div>
+      <div class="logo-name">L&D Admin</div>
+      <div class="logo-sub">Data Management</div>
     </div>
   </div>
-  <div class="topbar-right">
-    <a href="dashboard.html" class="btn-outline">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  <div class="tb-right">
+    <a href="dashboard.html" class="tb-btn tb-ghost">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       View Dashboard
     </a>
-    <button class="btn-outline" onclick="doLogout()">Sign Out</button>
+    <button class="tb-btn tb-ghost" onclick="doLogout()">Sign Out</button>
   </div>
 </div>
 
-<!-- MAIN PAGE -->
-<div class="page" id="adminPage" style="display:none">
-  <div class="page-title">Data Management</div>
-  <div class="page-sub">Upload monthly Excel files, manage the training data repository, and push data to the executive dashboard.</div>
+<!-- TAB BAR -->
+<div class="tab-bar" id="tabBar">
+  <div class="tab on" onclick="showTab('training')"><span class="tab-icon">📊</span> Training Data</div>
+  <div class="tab" onclick="showTab('headcount')"><span class="tab-icon">👥</span> Headcount</div>
+  <div class="tab" onclick="showTab('programs')"><span class="tab-icon">🎯</span> Program Config</div>
+  <div class="tab" onclick="showTab('settings')"><span class="tab-icon">⚙️</span> Settings</div>
+</div>
 
-  <!-- REPO SUMMARY -->
-  <div class="sec-hdr">Repository Overview</div>
-  <div class="info-grid">
-    <div class="info-card"><div class="info-val" id="repoMonths">0</div><div class="info-lbl">Months in Repository</div></div>
-    <div class="info-card"><div class="info-val" id="repoRecords">0</div><div class="info-lbl">Total Records Stored</div></div>
-    <div class="info-card"><div class="info-val" id="repoLastUpload">—</div><div class="info-lbl">Last Upload</div></div>
+<!-- ══ TAB 1: TRAINING DATA ══════════════════════════════ -->
+<div class="page on" id="tab-training">
+  <div class="page-h">Training Data Upload</div>
+  <div class="page-sub">Upload monthly Excel training records. Data is stored per month and accumulates in the repository for trend analysis.</div>
+
+  <div class="sec">Repository Overview</div>
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-val" id="repoMonths">0</div><div class="stat-lbl">Months Uploaded</div></div>
+    <div class="stat-card"><div class="stat-val" id="repoRecords">0</div><div class="stat-lbl">Total Records</div></div>
+    <div class="stat-card"><div class="stat-val" id="repoLastUpload">—</div><div class="stat-lbl">Last Upload</div></div>
+    <div class="stat-card"><div class="stat-val" id="repoCourses">0</div><div class="stat-lbl">Unique Courses</div></div>
   </div>
 
-  <!-- UPLOAD SECTION -->
-  <div class="sec-hdr">Upload New Monthly Data</div>
-
+  <div class="sec">Upload New Monthly File</div>
   <div class="field-row">
-    <div class="field-group">
-      <label class="field-label">Month Label (for repository)</label>
-      <input class="field-input" type="text" id="monthLabel" placeholder="e.g. March 2025" />
-    </div>
-    <div class="field-group">
-      <label class="field-label">Data Sheet Name (optional)</label>
-      <input class="field-input" type="text" id="sheetName" placeholder="Leave blank to use first sheet" />
-    </div>
+    <div class="field"><label class="field-lbl">Month Label</label><input class="field-inp" type="text" id="monthLabel" placeholder="e.g. March 2025"/></div>
+    <div class="field"><label class="field-lbl">Sheet Name (optional)</label><input class="field-inp" type="text" id="sheetName" placeholder="Leave blank for first sheet"/></div>
   </div>
 
-  <div class="upload-card" id="uploadCard" onclick="document.getElementById('fileInput').click()"
-    ondragover="event.preventDefault();this.classList.add('drag-over')"
-    ondragleave="this.classList.remove('drag-over')"
-    ondrop="handleDrop(event)">
-    <div class="upload-icon">📂</div>
-    <div class="upload-title">Drop your Excel file here</div>
-    <div class="upload-sub">Supports .xlsx and .xls formats · All 18 standard columns will be mapped automatically</div>
-    <label class="upload-btn-label">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+  <div class="drop-zone" id="trainingDrop"
+    onclick="document.getElementById('trainingFile').click()"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleTrainingDrop(event)">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">Drop your training Excel file here</div>
+    <div class="drop-sub">Supports .xlsx and .xls · All 19 columns including Region will be auto-mapped</div>
+    <label class="drop-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
       Browse File
     </label>
-    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this.files[0])"/>
+    <input type="file" id="trainingFile" accept=".xlsx,.xls" onchange="handleTrainingFile(this.files[0])"/>
   </div>
 
-  <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="prog-bar" id="trainingProgBar"><div class="prog-fill" id="trainingProgFill" style="width:0%"></div></div>
+  <div class="status-box" id="trainingStatus"></div>
 
-  <!-- STATUS CARD -->
-  <div class="status-card" id="statusCard">
-    <div class="status-title" id="statusTitle"></div>
-    <div class="status-body" id="statusBody"></div>
+  <div id="trainingColMapWrap" style="display:none">
+    <div class="sec" style="margin-top:14px">Column Detection</div>
+    <div class="col-map" id="trainingColMap"></div>
   </div>
 
-  <!-- COLUMN MAP -->
-  <div id="colMapWrap" style="display:none">
-    <div class="sec-hdr" style="margin-top:16px">Column Detection</div>
-    <div class="col-map" id="colMap"></div>
+  <div id="trainingPreviewWrap" style="display:none;margin-top:18px">
+    <div class="sec">Data Preview <span style="font-size:11px;font-weight:400;color:var(--text4)" id="trainingPreviewCount"></span></div>
+    <div class="preview-wrap"><table class="preview-table" id="trainingPreviewTable"></table></div>
   </div>
 
-  <!-- PREVIEW TABLE -->
-  <div id="previewWrap" style="display:none; margin-top:20px">
-    <div class="sec-hdr">Data Preview <span style="font-size:11px;font-weight:400;color:var(--text-dim)" id="previewCount"></span></div>
-    <div class="preview-wrap"><table class="preview-table" id="previewTable"></table></div>
-  </div>
-
-  <!-- PROCESS BUTTON -->
-  <button class="process-btn" id="processBtn" onclick="processAndSave()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg>
+  <button class="action-btn" id="trainingProcessBtn" onclick="processTrainingData()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg>
     Save to Repository & Update Dashboard
   </button>
 
-  <!-- REPOSITORY -->
-  <div class="sec-hdr" style="margin-top:8px">Monthly Data Repository</div>
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:24px;">
-    <table class="repo-table">
+  <div class="sec" style="margin-top:6px">Monthly Repository</div>
+  <div class="card">
+    <table class="tbl">
       <thead><tr><th>Month</th><th>Records</th><th>Uploaded At</th><th>Courses</th><th>Clusters</th><th>Action</th></tr></thead>
-      <tbody id="repoTableBody"></tbody>
+      <tbody id="trainingRepoBody"></tbody>
     </table>
-    <div id="repoEmpty" style="text-align:center;padding:24px;color:var(--text-dim);font-size:13px;display:none">No data uploaded yet. Upload your first monthly file above.</div>
+    <div id="trainingRepoEmpty" style="text-align:center;padding:20px;color:var(--text4);font-size:13px">No training data uploaded yet.</div>
+  </div>
+</div>
+
+<!-- ══ TAB 2: HEADCOUNT ══════════════════════════════════ -->
+<div class="page" id="tab-headcount">
+  <div class="page-h">Headcount Management</div>
+  <div class="page-sub">Upload the current employee headcount. Each upload replaces the active headcount and flags employees who have left vs the previous month.</div>
+
+  <div class="sec">Current Headcount Summary</div>
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-val" id="hcTotal">0</div><div class="stat-lbl">Active Employees</div></div>
+    <div class="stat-card"><div class="stat-val" id="hcLastMonth">—</div><div class="stat-lbl">Previous Month</div></div>
+    <div class="stat-card"><div class="stat-val" id="hcJoined" style="color:var(--green)">+0</div><div class="stat-lbl">New / Rejoined</div></div>
+    <div class="stat-card"><div class="stat-val" id="hcLeft" style="color:var(--red)">-0</div><div class="stat-lbl">Resigned / Removed</div></div>
   </div>
 
-  <!-- SETTINGS -->
-  <div class="sec-hdr">Admin Settings</div>
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:40px;">
-    <div class="field-row">
-      <div class="field-group">
-        <label class="field-label">Change Admin Username</label>
-        <input class="field-input" type="text" id="newUser" placeholder="New username"/>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Change Admin Password</label>
-        <input class="field-input" type="password" id="newPass" placeholder="New password"/>
+  <div class="sec">Upload New Headcount</div>
+  <div class="field-row">
+    <div class="field"><label class="field-lbl">Month Label (for this headcount)</label><input class="field-inp" type="text" id="hcMonthLabel" placeholder="e.g. March 2025"/></div>
+    <div class="field"><label class="field-lbl">Sheet Name (optional)</label><input class="field-inp" type="text" id="hcSheetName" placeholder="Leave blank for first sheet"/></div>
+  </div>
+
+  <div class="drop-zone" id="hcDrop"
+    onclick="document.getElementById('hcFile').click()"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="handleHcDrop(event)">
+    <div class="drop-icon">👥</div>
+    <div class="drop-title">Drop your Headcount Excel file here</div>
+    <div class="drop-sub">Expected columns: Employee No., Employee Name, Group, Grade, Sub Group, Functional Title, and any others</div>
+    <label class="drop-btn">Browse File</label>
+    <input type="file" id="hcFile" accept=".xlsx,.xls" onchange="handleHcFile(this.files[0])"/>
+  </div>
+
+  <div class="prog-bar" id="hcProgBar"><div class="prog-fill" id="hcProgFill" style="width:0%"></div></div>
+  <div class="status-box" id="hcStatus"></div>
+
+  <!-- Diff preview shown after parse -->
+  <div id="hcDiffWrap" style="display:none">
+    <div class="sec" style="margin-top:14px">Headcount Change Preview</div>
+    <div class="diff-row">
+      <div class="diff-card same"><div class="diff-num" id="diffSame">0</div><div class="diff-lbl">Continuing Employees</div></div>
+      <div class="diff-card added"><div class="diff-num" id="diffAdded">0</div><div class="diff-lbl">New / Rejoined</div></div>
+      <div class="diff-card left"><div class="diff-num" id="diffLeft">0</div><div class="diff-lbl">Resigned / Removed</div></div>
+    </div>
+
+    <div id="resignedListWrap" style="display:none">
+      <div class="sec">Employees Removed (Resigned)</div>
+      <div class="card" style="max-height:280px;overflow-y:auto">
+        <table class="tbl">
+          <thead><tr><th>Employee No.</th><th>Name</th><th>Grade</th><th>Group</th><th>Functional Title</th></tr></thead>
+          <tbody id="resignedTableBody"></tbody>
+        </table>
       </div>
     </div>
-    <button style="padding:10px 24px;background:var(--ubl);color:#fff;border:none;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;" onclick="saveCredentials()">Save Credentials</button>
-    <div id="credMsg" style="font-size:12px;color:var(--green);margin-top:8px;display:none">Credentials updated successfully.</div>
-    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border)">
-      <button style="padding:10px 24px;background:var(--red-bg);color:var(--red);border:1px solid #fca5a5;border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;" onclick="clearAllData()">🗑 Clear All Repository Data</button>
-      <div style="font-size:11px;color:var(--text-dim);margin-top:6px">This will permanently remove all uploaded data from this browser. Cannot be undone.</div>
+  </div>
+
+  <div id="hcPreviewWrap" style="display:none;margin-top:16px">
+    <div class="sec">Headcount Preview <span style="font-size:11px;font-weight:400;color:var(--text4)" id="hcPreviewCount"></span></div>
+    <div class="preview-wrap"><table class="preview-table" id="hcPreviewTable"></table></div>
+  </div>
+
+  <button class="action-btn" id="hcProcessBtn" onclick="processHeadcount()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg>
+    Save Headcount & Flag Resigned Employees
+  </button>
+
+  <div class="sec" style="margin-top:6px">Headcount History</div>
+  <div class="card">
+    <table class="tbl">
+      <thead><tr><th>Month</th><th>Total Employees</th><th>Uploaded At</th><th>New</th><th>Resigned</th><th>Action</th></tr></thead>
+      <tbody id="hcHistoryBody"></tbody>
+    </table>
+    <div id="hcHistoryEmpty" style="text-align:center;padding:20px;color:var(--text4);font-size:13px">No headcount uploaded yet.</div>
+  </div>
+</div>
+
+<!-- ══ TAB 3: PROGRAM CONFIG ═════════════════════════════ -->
+<div class="page" id="tab-programs">
+  <div class="page-h">Program Configuration</div>
+  <div class="page-sub">Define training programs, their target audiences (Group + Functional Title), and which Category they map to in the training data. The dashboard will track coverage progress automatically.</div>
+
+  <div class="sec">Add New Program</div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field">
+        <label class="field-lbl">Program Name</label>
+        <input class="field-inp" type="text" id="progName" placeholder="e.g. Branch Development Program"/>
+      </div>
+      <div class="field">
+        <label class="field-lbl">Category (matches Category column in training data)</label>
+        <input class="field-inp" type="text" id="progCategory" placeholder="e.g. Branch Development Program"/>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-lbl">Target Groups <span style="font-weight:400;color:var(--text4)">(comma-separated, e.g. Branch Banking Group)</span></label>
+        <textarea class="field-inp" id="progGroups" placeholder="Branch Banking Group&#10;Islamic Banking Group"></textarea>
+      </div>
+      <div class="field">
+        <label class="field-lbl">Target Functional Titles <span style="font-weight:400;color:var(--text4)">(comma-separated — leave blank for all titles in group)</span></label>
+        <textarea class="field-inp" id="progTitles" placeholder="Branch Manager&#10;Branch Operations Manager&#10;Area Manager"></textarea>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-lbl">Phases <span style="font-weight:400;color:var(--text4)">(comma-separated; leave blank if no phases)</span></label>
+        <input class="field-inp" type="text" id="progPhases" placeholder="Phase I, Phase II, Phase III"/>
+      </div>
+      <div class="field">
+        <label class="field-lbl">Notes / Description (optional)</label>
+        <input class="field-inp" type="text" id="progNotes" placeholder="Any relevant notes about this program"/>
+      </div>
+    </div>
+    <button onclick="addProgram()" style="padding:10px 24px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--sh-ubl);transition:all 0.2s" onmouseover="this.style.background='var(--ubl-dark)'" onmouseout="this.style.background='var(--ubl)'">
+      + Add Program
+    </button>
+    <div class="status-box" id="progAddStatus" style="margin-top:12px;margin-bottom:0"></div>
+  </div>
+
+  <div class="sec" style="margin-top:4px">Configured Programs (<span id="progCount">0</span>)</div>
+  <div class="prog-list" id="progList">
+    <div style="text-align:center;padding:28px;color:var(--text4);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)" id="progListEmpty">No programs configured yet. Add your first program above.</div>
+  </div>
+</div>
+
+<!-- ══ TAB 4: SETTINGS ═══════════════════════════════════ -->
+<div class="page" id="tab-settings">
+  <div class="page-h">Admin Settings</div>
+  <div class="page-sub">Manage credentials and data for this admin panel.</div>
+
+  <div class="sec">Change Credentials</div>
+  <div class="card">
+    <div class="settings-grid">
+      <div class="field"><label class="field-lbl">New Username</label><input class="field-inp" type="text" id="newUser" placeholder="New username"/></div>
+      <div class="field"><label class="field-lbl">New Password</label><input class="field-inp" type="password" id="newPass" placeholder="New password"/></div>
+    </div>
+    <button onclick="saveCredentials()" style="margin-top:12px;padding:9px 22px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Save Credentials</button>
+    <div id="credMsg" style="font-size:12px;color:var(--green);margin-top:8px;display:none">✓ Credentials updated.</div>
+  </div>
+
+  <div class="sec">Data Management</div>
+  <div class="card">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <button onclick="clearTrainingData()" style="padding:9px 20px;background:var(--red-t);color:var(--red);border:1px solid #fca5a5;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer">🗑 Clear All Training Data</button>
+        <div style="font-size:11px;color:var(--text4);margin-top:4px">Removes all uploaded training records. Cannot be undone.</div>
+      </div>
+      <div>
+        <button onclick="clearHeadcount()" style="padding:9px 20px;background:var(--red-t);color:var(--red);border:1px solid #fca5a5;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer">🗑 Clear All Headcount Data</button>
+        <div style="font-size:11px;color:var(--text4);margin-top:4px">Removes all headcount history. Cannot be undone.</div>
+      </div>
+      <div>
+        <button onclick="clearPrograms()" style="padding:9px 20px;background:var(--red-t);color:var(--red);border:1px solid #fca5a5;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer">🗑 Clear All Program Configurations</button>
+        <div style="font-size:11px;color:var(--text4);margin-top:4px">Removes all defined programs. Cannot be undone.</div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-// ── CREDENTIALS ──────────────────────────────────────────
-const DEFAULT_USER = 'admin';
-const DEFAULT_PASS = 'ubl2025';
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+function getCreds(){ return { user: localStorage.getItem('ubl_admin_user')||'admin', pass: localStorage.getItem('ubl_admin_pass')||'ubl2025' }; }
 
-function getCreds() {
-  return {
-    user: localStorage.getItem('ubl_admin_user') || DEFAULT_USER,
-    pass: localStorage.getItem('ubl_admin_pass') || DEFAULT_PASS
-  };
-}
-
-function doLogin() {
-  const u = document.getElementById('loginUser').value.trim();
-  const p = document.getElementById('loginPass').value;
-  const creds = getCreds();
-  if (u === creds.user && p === creds.pass) {
-    document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('adminPage').style.display = 'block';
-    refreshRepo();
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value;
+  const c=getCreds();
+  if(u===c.user&&p===c.pass){
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('tabBar').style.display='flex';
+    document.querySelectorAll('.page').forEach(pg=>{if(pg.classList.contains('on'))pg.style.display='block';});
+    initAdmin();
   } else {
-    document.getElementById('loginErr').style.display = 'block';
+    document.getElementById('loginErr').style.display='block';
   }
 }
-
-function doLogout() {
-  document.getElementById('loginOverlay').style.display = 'flex';
-  document.getElementById('adminPage').style.display = 'none';
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPass').value = '';
+function doLogout(){
+  location.reload();
+}
+function saveCredentials(){
+  const u=document.getElementById('newUser').value.trim();
+  const p=document.getElementById('newPass').value;
+  if(u) localStorage.setItem('ubl_admin_user',u);
+  if(p) localStorage.setItem('ubl_admin_pass',p);
+  const m=document.getElementById('credMsg');
+  m.style.display='block';
+  setTimeout(()=>m.style.display='none',3000);
 }
 
-function saveCredentials() {
-  const u = document.getElementById('newUser').value.trim();
-  const p = document.getElementById('newPass').value;
-  if (u) localStorage.setItem('ubl_admin_user', u);
-  if (p) localStorage.setItem('ubl_admin_pass', p);
-  const msg = document.getElementById('credMsg');
-  msg.style.display = 'block';
-  setTimeout(() => msg.style.display = 'none', 3000);
+// ════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════
+function showTab(id){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.page').forEach(p=>{ p.classList.remove('on'); p.style.display='none'; });
+  const tabEl = [...document.querySelectorAll('.tab')].find(t=>t.getAttribute('onclick')?.includes(id));
+  if(tabEl) tabEl.classList.add('on');
+  const page = document.getElementById('tab-'+id);
+  if(page){ page.classList.add('on'); page.style.display='block'; }
 }
 
-// ── FILE HANDLING ────────────────────────────────────────
-let parsedRows = [];
-
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('uploadCard').classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile(file);
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+function initAdmin(){
+  refreshTrainingRepo();
+  refreshHcSummary();
+  refreshProgList();
 }
 
-function handleFile(file) {
-  if (!file) return;
-  if (!file.name.match(/\.(xlsx|xls)$/i)) {
-    showStatus('error', 'Invalid File', 'Please upload a valid .xlsx or .xls Excel file.');
-    return;
-  }
+// ════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════
+function norm(v){ return v==null?'':String(v).trim(); }
 
-  showProgress(20);
-  showStatus('info', 'Reading file…', `Processing: ${file.name}`);
+function showStatus(id, type, title, body){
+  const el=document.getElementById(id);
+  el.className='status-box '+type;
+  el.style.display='block';
+  el.innerHTML=`<div class="status-title">${title}</div>${body}`;
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      showProgress(50);
-      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
-      const sheetInput = document.getElementById('sheetName').value.trim();
-      const sheetName = sheetInput && wb.SheetNames.includes(sheetInput) ? sheetInput : wb.SheetNames[0];
-      const ws = wb.Sheets[sheetName];
-      const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+function showProg(barId, fillId, pct){
+  document.getElementById(barId).style.display='block';
+  document.getElementById(fillId).style.width=pct+'%';
+}
 
-      showProgress(75);
-      parsedRows = raw.map(r => normalizeRow(r));
-      showProgress(100);
-
-      if (parsedRows.length === 0) {
-        showStatus('error', 'No Data Found', 'The Excel file appears to be empty or the sheet could not be read.');
-        return;
-      }
-
-      renderColumnMap(Object.keys(raw[0] || {}));
-      renderPreview(parsedRows.slice(0, 10));
-
-      document.getElementById('processBtn').style.display = 'flex';
-      document.getElementById('previewCount').textContent = `(${parsedRows.length.toLocaleString()} total rows)`;
-
-      showStatus('success', '✓ File Parsed Successfully',
-        `Sheet: "${sheetName}" · ${parsedRows.length.toLocaleString()} rows detected · ${Object.keys(raw[0]||{}).length} columns found`);
-
-      // Auto-suggest month label
-      const ml = document.getElementById('monthLabel');
-      if (!ml.value) {
-        const dates = parsedRows.map(r => r['From']).filter(Boolean);
-        if (dates.length > 0) {
-          try {
-            const d = new Date(dates[0]);
-            if (!isNaN(d)) ml.value = d.toLocaleString('default', {month:'long', year:'numeric'});
-          } catch(e) {}
-        }
-      }
-    } catch(err) {
-      showStatus('error', 'Parse Error', `Could not read the file: ${err.message}`);
-    } finally {
-      setTimeout(() => document.getElementById('progressBar').style.display = 'none', 800);
-    }
+function readExcel(file, sheetNameHint, onSuccess, onError){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const sn=sheetNameHint&&wb.SheetNames.includes(sheetNameHint)?sheetNameHint:wb.SheetNames[0];
+      const raw=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:''});
+      onSuccess(raw, sn, wb.SheetNames);
+    }catch(err){ onError(err.message); }
   };
   reader.readAsArrayBuffer(file);
 }
 
-function normalizeRow(r) {
-  // Normalize column names (trim, handle case variations)
-  const row = {};
-  const colMap = {
-    'employee no': 'Employee No.',
-    'employee no.': 'Employee No.',
-    'emp no': 'Employee No.',
-    'employee name': 'Employee Name',
-    'name': 'Employee Name',
-    'functional title': 'Functional Title',
-    'title': 'Functional Title',
-    'grade': 'Grade',
-    'group': 'Group',
-    'pop code': 'POP Code',
-    'region': 'Region',
-    'cluster': 'Cluster',
-    'attendance status': 'Attendance Status',
-    'status': 'Attendance Status',
-    'modules': 'Modules',
-    'module': 'Modules',
-    'course title': 'Course Title',
-    'course': 'Course Title',
-    'delivery mode': 'Delivery Mode',
-    'delivery': 'Delivery Mode',
-    'training type': 'Training Type',
-    'type': 'Training Type',
-    'training status': 'Training Status',
-    'from': 'From',
-    'start date': 'From',
-    'to': 'To',
-    'end date': 'To',
-    'duration': 'Duration',
-    'working hours': 'Working Hours',
-    'hours': 'Working Hours',
-    'category': 'Category',
-  };
+// ════════════════════════════════════════════════════════
+// TRAINING DATA UPLOAD
+// ════════════════════════════════════════════════════════
+let parsedTrainingRows = [];
 
-  Object.keys(r).forEach(k => {
-    const norm = k.trim().toLowerCase();
-    const mapped = colMap[norm] || k.trim();
-    row[mapped] = r[k] == null ? '' : String(r[k]).trim();
+const TRAINING_COL_MAP = {
+  'employee no':'Employee No.','employee no.':'Employee No.','emp no':'Employee No.',
+  'employee name':'Employee Name','name':'Employee Name',
+  'functional title':'Functional Title','title':'Functional Title',
+  'grade':'Grade','group':'Group','pop code':'POP Code',
+  'region':'Region','cluster':'Cluster',
+  'attendance status':'Attendance Status','status':'Attendance Status',
+  'modules':'Modules','module':'Modules',
+  'course title':'Course Title','course':'Course Title',
+  'delivery mode':'Delivery Mode','delivery':'Delivery Mode',
+  'training type':'Training Type','type':'Training Type',
+  'training status':'Training Status',
+  'from':'From','start date':'From','to':'To','end date':'To',
+  'duration':'Duration','working hours':'Working Hours','hours':'Working Hours',
+  'category':'Category',
+};
+const TRAINING_EXPECTED = ['Employee No.','Employee Name','Functional Title','Grade','Group','POP Code','Region','Cluster','Attendance Status','Modules','Course Title','Delivery Mode','Training Type','Training Status','From','To','Duration','Working Hours','Category'];
+
+function handleTrainingDrop(e){ e.preventDefault(); document.getElementById('trainingDrop').classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f) handleTrainingFile(f); }
+
+function handleTrainingFile(file){
+  if(!file||!file.name.match(/\.(xlsx|xls)$/i)){ showStatus('trainingStatus','err','Invalid File','Please upload a .xlsx or .xls file.'); return; }
+  showProg('trainingProgBar','trainingProgFill',30);
+  showStatus('trainingStatus','info','Reading file…',`Processing: ${file.name}`);
+  const sn=document.getElementById('sheetName').value.trim();
+  readExcel(file, sn, (raw, sheetUsed)=>{
+    showProg('trainingProgBar','trainingProgFill',70);
+    parsedTrainingRows = raw.map(r=>normalizeTrainingRow(r));
+    showProg('trainingProgBar','trainingProgFill',100);
+    if(!parsedTrainingRows.length){ showStatus('trainingStatus','err','No Data','File appears empty.'); return; }
+    renderColMap('trainingColMap','trainingColMapWrap', Object.keys(raw[0]||{}), TRAINING_EXPECTED);
+    renderPreview('trainingPreviewTable','trainingPreviewWrap','trainingPreviewCount', parsedTrainingRows.slice(0,8), TRAINING_EXPECTED);
+    document.getElementById('trainingProcessBtn').style.display='flex';
+    document.getElementById('trainingPreviewCount').textContent=`(${parsedTrainingRows.length.toLocaleString()} total rows)`;
+    // Auto-fill month
+    if(!document.getElementById('monthLabel').value){
+      const dates=parsedTrainingRows.map(r=>r['From']).filter(Boolean);
+      if(dates.length){ try{ const d=new Date(dates[0]); if(!isNaN(d)) document.getElementById('monthLabel').value=d.toLocaleString('default',{month:'long',year:'numeric'}); }catch(e){} }
+    }
+    showStatus('trainingStatus','ok',`✓ Parsed ${parsedTrainingRows.length.toLocaleString()} rows from "${sheetUsed}"`,`${Object.keys(raw[0]||{}).length} columns detected. Review the preview below before saving.`);
+    setTimeout(()=>document.getElementById('trainingProgBar').style.display='none',800);
+  }, err=>showStatus('trainingStatus','err','Parse Error',err));
+}
+
+function normalizeTrainingRow(r){
+  const row={};
+  Object.keys(r).forEach(k=>{
+    const mapped=TRAINING_COL_MAP[k.trim().toLowerCase()]||k.trim();
+    row[mapped]=norm(r[k]);
   });
-
-  // Derive month and quarter from date
-  const fromDate = row['From'] || row['To'] || '';
-  if (fromDate) {
-    try {
-      const d = new Date(fromDate);
-      if (!isNaN(d)) {
-        row._month = d.toLocaleString('default', {month:'long', year:'numeric'});
-        const q = Math.ceil((d.getMonth()+1)/3);
-        row._quarter = `Q${q}`;
-      }
-    } catch(e) {}
-  }
-
+  const fromDate=row['From']||row['To']||'';
+  if(fromDate){ try{ const d=new Date(fromDate); if(!isNaN(d)){ row._month=d.toLocaleString('default',{month:'long',year:'numeric'}); row._quarter=`Q${Math.ceil((d.getMonth()+1)/3)}`; } }catch(e){} }
   return row;
 }
 
-// ── COLUMN MAP DISPLAY ───────────────────────────────────
-const EXPECTED_COLS = ['Employee No.','Employee Name','Functional Title','Grade','Group','POP Code','Region','Cluster','Attendance Status','Modules','Course Title','Delivery Mode','Training Type','Training Status','From','To','Duration','Working Hours','Category'];
-
-function renderColumnMap(foundCols) {
-  const found = foundCols.map(c => c.trim().toLowerCase());
-  const colMapEl = document.getElementById('colMap');
-  const colMapWrap = document.getElementById('colMapWrap');
-  colMapWrap.style.display = 'block';
-
-  colMapEl.innerHTML = EXPECTED_COLS.map(col => {
-    const lo = col.toLowerCase();
-    const ok = foundCols.some(c => c.trim().toLowerCase() === lo || c.trim().toLowerCase().includes(lo.split(' ')[0]));
-    return `<div class="col-item">
-      <span class="col-name">${col}</span>
-      <span class="${ok?'col-ok':'col-miss'}">${ok ? '✓ Found' : '⚠ Not found'}</span>
-    </div>`;
-  }).join('');
+function processTrainingData(){
+  const btn=document.getElementById('trainingProcessBtn');
+  let label=document.getElementById('monthLabel').value.trim();
+  if(!label) label=`Upload ${new Date().toLocaleDateString('en-PK',{month:'long',year:'numeric'})}`;
+  if(!parsedTrainingRows.length){ showStatus('trainingStatus','err','No Data','Parse a file first.'); return; }
+  btn.disabled=true; btn.innerHTML='⏳ Saving…';
+  const tagged=parsedTrainingRows.map(r=>({...r,_uploadMonth:label,_uploadedAt:new Date().toISOString()}));
+  let existing=[];
+  try{ existing=JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); }catch(e){}
+  existing=existing.filter(r=>r._uploadMonth!==label);
+  localStorage.setItem('ubl_ld_data',JSON.stringify([...existing,...tagged]));
+  // Save meta
+  let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
+  meta=meta.filter(m=>m.month!==label);
+  const courses=new Set(tagged.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
+  const clusters=[...new Set(tagged.map(r=>norm(r['Cluster'])).filter(Boolean))].join(', ');
+  meta.push({month:label,count:tagged.length,uploadedAt:new Date().toLocaleString('en-PK'),courses,clusters});
+  localStorage.setItem('ubl_ld_meta',JSON.stringify(meta));
+  setTimeout(()=>{
+    btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save to Repository & Update Dashboard';
+    showStatus('trainingStatus','ok','✓ Saved Successfully',`${tagged.length.toLocaleString()} records saved for <strong>${label}</strong>. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
+    refreshTrainingRepo();
+    parsedTrainingRows=[];
+    document.getElementById('trainingPreviewWrap').style.display='none';
+    document.getElementById('trainingColMapWrap').style.display='none';
+    document.getElementById('trainingProcessBtn').style.display='none';
+    document.getElementById('monthLabel').value='';
+  },700);
 }
 
-// ── PREVIEW TABLE ────────────────────────────────────────
-function renderPreview(rows) {
-  const wrap = document.getElementById('previewWrap');
-  wrap.style.display = 'block';
-  const table = document.getElementById('previewTable');
-  if (!rows.length) { table.innerHTML = ''; return; }
-
-  const cols = EXPECTED_COLS.filter(c => rows.some(r => r[c]));
-  const thead = `<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>`;
-  const tbody = `<tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]||'—'}</td>`).join('')}</tr>`).join('')}</tbody>`;
-  table.innerHTML = thead + tbody;
-}
-
-// ── SAVE TO REPO ─────────────────────────────────────────
-function processAndSave() {
-  const btn = document.getElementById('processBtn');
-  let monthLabel = document.getElementById('monthLabel').value.trim();
-  if (!monthLabel) {
-    monthLabel = `Upload ${new Date().toLocaleDateString('en-PK', {month:'long', year:'numeric'})}`;
-  }
-
-  if (!parsedRows.length) { showStatus('error','No Data','Parse a file first.'); return; }
-
-  btn.disabled = true;
-  btn.innerHTML = '⏳ Saving…';
-
-  // Tag rows with month label if not already set
-  const taggedRows = parsedRows.map(r => ({
-    ...r,
-    _month: r._month || monthLabel,
-    _quarter: r._quarter || 'Q1',
-    _uploadedAt: new Date().toISOString(),
-    _uploadMonth: monthLabel,
-  }));
-
-  // Retrieve existing data and replace this month
-  let existing = [];
-  try { existing = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]'); } catch(e) {}
-
-  existing = existing.filter(r => r._uploadMonth !== monthLabel);
-  const merged = [...existing, ...taggedRows];
-
-  localStorage.setItem('ubl_ld_data', JSON.stringify(merged));
-
-  // Save repo metadata
-  saveRepoMeta(monthLabel, taggedRows.length, taggedRows);
-
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save to Repository & Update Dashboard';
-    showStatus('success', '✓ Data Saved Successfully',
-      `${taggedRows.length.toLocaleString()} records saved for ${monthLabel}. The dashboard has been updated. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
-    refreshRepo();
-    parsedRows = [];
-    document.getElementById('previewWrap').style.display = 'none';
-    document.getElementById('colMapWrap').style.display = 'none';
-    document.getElementById('processBtn').style.display = 'none';
-    document.getElementById('monthLabel').value = '';
-  }, 800);
-}
-
-// ── REPO METADATA ────────────────────────────────────────
-function saveRepoMeta(monthLabel, count, rows) {
-  let meta = [];
-  try { meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]'); } catch(e) {}
-  meta = meta.filter(m => m.month !== monthLabel);
-  const courses = new Set(rows.map(r => (r['Course Title']||'').trim()).filter(Boolean)).size;
-  const clusters = [...new Set(rows.map(r => (r['Cluster']||'').trim()).filter(Boolean))].join(', ');
-  meta.push({ month: monthLabel, count, uploadedAt: new Date().toLocaleString('en-PK'), courses, clusters });
-  localStorage.setItem('ubl_ld_meta', JSON.stringify(meta));
-}
-
-function refreshRepo() {
-  let meta = [];
-  let total = 0;
-  try {
-    meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]');
-    const data = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
-    total = data.length;
-  } catch(e) {}
-
-  document.getElementById('repoMonths').textContent = meta.length;
-  document.getElementById('repoRecords').textContent = total.toLocaleString();
-  document.getElementById('repoLastUpload').textContent = meta.length > 0 ? meta[meta.length-1].month : '—';
-
-  const tbody = document.getElementById('repoTableBody');
-  const empty = document.getElementById('repoEmpty');
-
-  if (meta.length === 0) {
-    tbody.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
-
-  tbody.innerHTML = [...meta].reverse().map(m => `
+function refreshTrainingRepo(){
+  let meta=[],total=0,courses=0;
+  try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
+  try{ const d=JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); total=d.length; courses=new Set(d.map(r=>norm(r['Course Title'])).filter(Boolean)).size; }catch(e){}
+  document.getElementById('repoMonths').textContent=meta.length;
+  document.getElementById('repoRecords').textContent=total.toLocaleString();
+  document.getElementById('repoLastUpload').textContent=meta.length?meta[meta.length-1].month:'—';
+  document.getElementById('repoCourses').textContent=courses.toLocaleString();
+  const tbody=document.getElementById('trainingRepoBody');
+  const empty=document.getElementById('trainingRepoEmpty');
+  if(!meta.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML=[...meta].reverse().map(m=>`
     <tr>
       <td><strong>${m.month}</strong></td>
       <td>${m.count.toLocaleString()}</td>
       <td>${m.uploadedAt}</td>
-      <td>${m.courses || '—'}</td>
-      <td>${m.clusters || '—'}</td>
-      <td><button class="del-btn" onclick="deleteMonth('${m.month}')">Delete</button></td>
+      <td>${m.courses||'—'}</td>
+      <td>${m.clusters||'—'}</td>
+      <td><button class="del-btn" onclick="deleteTrainingMonth('${m.month}')">Delete</button></td>
     </tr>`).join('');
 }
 
-function deleteMonth(monthLabel) {
-  if (!confirm(`Delete all data for "${monthLabel}"? This cannot be undone.`)) return;
-
-  let data = [];
-  try { data = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]'); } catch(e) {}
-  data = data.filter(r => r._uploadMonth !== monthLabel);
-  localStorage.setItem('ubl_ld_data', JSON.stringify(data));
-
-  let meta = [];
-  try { meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]'); } catch(e) {}
-  meta = meta.filter(m => m.month !== monthLabel);
-  localStorage.setItem('ubl_ld_meta', JSON.stringify(meta));
-
-  refreshRepo();
-  showStatus('info', 'Month Deleted', `Data for "${monthLabel}" has been removed from the repository.`);
+function deleteTrainingMonth(month){
+  if(!confirm(`Delete all training data for "${month}"?`)) return;
+  let d=[]; try{ d=JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); }catch(e){}
+  localStorage.setItem('ubl_ld_data',JSON.stringify(d.filter(r=>r._uploadMonth!==month)));
+  let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
+  localStorage.setItem('ubl_ld_meta',JSON.stringify(meta.filter(m=>m.month!==month)));
+  refreshTrainingRepo();
 }
 
-function clearAllData() {
-  if (!confirm('DELETE ALL repository data? This is permanent.')) return;
-  localStorage.removeItem('ubl_ld_data');
-  localStorage.removeItem('ubl_ld_meta');
-  refreshRepo();
-  showStatus('info', 'Repository Cleared', 'All data has been removed.');
+// ════════════════════════════════════════════════════════
+// HEADCOUNT UPLOAD
+// ════════════════════════════════════════════════════════
+let parsedHcRows = [];
+
+const HC_COL_MAP = {
+  'employee no':'Employee No.','employee no.':'Employee No.','emp no':'Employee No.','empno':'Employee No.',
+  'employee name':'Employee Name','name':'Employee Name','emp name':'Employee Name',
+  'group':'Group','grade':'Grade',
+  'sub group':'Sub Group','subgroup':'Sub Group','sub-group':'Sub Group',
+  'functional title':'Functional Title','title':'Functional Title','designation':'Functional Title',
+  'department':'Department','branch':'Branch','location':'Location',
+  'cluster':'Cluster','region':'Region','pop code':'POP Code',
+};
+const HC_EXPECTED = ['Employee No.','Employee Name','Grade','Group','Sub Group','Functional Title'];
+
+function handleHcDrop(e){ e.preventDefault(); document.getElementById('hcDrop').classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f) handleHcFile(f); }
+
+function handleHcFile(file){
+  if(!file||!file.name.match(/\.(xlsx|xls)$/i)){ showStatus('hcStatus','err','Invalid File','Please upload a .xlsx or .xls file.'); return; }
+  showProg('hcProgBar','hcProgFill',30);
+  showStatus('hcStatus','info','Reading headcount file…',`Processing: ${file.name}`);
+  const sn=document.getElementById('hcSheetName').value.trim();
+  readExcel(file, sn, (raw, sheetUsed)=>{
+    showProg('hcProgFill','hcProgFill',75);
+    parsedHcRows = raw.map(r=>{ const row={}; Object.keys(r).forEach(k=>{ const mapped=HC_COL_MAP[k.trim().toLowerCase()]||k.trim(); row[mapped]=norm(r[k]); }); return row; });
+    showProg('hcProgBar','hcProgFill',100);
+    if(!parsedHcRows.length){ showStatus('hcStatus','err','No Data','File appears empty.'); return; }
+    // Compute diff vs previous headcount
+    computeHcDiff(parsedHcRows);
+    renderPreview('hcPreviewTable','hcPreviewWrap','hcPreviewCount', parsedHcRows.slice(0,8), HC_EXPECTED);
+    document.getElementById('hcPreviewCount').textContent=`(${parsedHcRows.length.toLocaleString()} total employees)`;
+    document.getElementById('hcProcessBtn').style.display='flex';
+    if(!document.getElementById('hcMonthLabel').value) document.getElementById('hcMonthLabel').value=new Date().toLocaleString('default',{month:'long',year:'numeric'});
+    showStatus('hcStatus','ok',`✓ Parsed ${parsedHcRows.length.toLocaleString()} employees from "${sheetUsed}"`,`Review the change preview and resigned list before saving.`);
+    setTimeout(()=>document.getElementById('hcProgBar').style.display='none',800);
+  }, err=>showStatus('hcStatus','err','Parse Error',err));
 }
 
-// ── HELPERS ──────────────────────────────────────────────
-function showStatus(type, title, body) {
-  const card = document.getElementById('statusCard');
-  card.className = `status-card ${type}`;
-  card.style.display = 'block';
-  document.getElementById('statusTitle').textContent = title;
-  document.getElementById('statusBody').innerHTML = body;
-  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+function computeHcDiff(newRows){
+  let prev=[];
+  try{ const h=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); if(h) prev=h.rows; }catch(e){}
+  const newIds=new Set(newRows.map(r=>norm(r['Employee No.'])).filter(Boolean));
+  const prevIds=new Set(prev.map(r=>norm(r['Employee No.'])).filter(Boolean));
+  const added=[...newIds].filter(id=>!prevIds.has(id));
+  const left=[...prevIds].filter(id=>!newIds.has(id));
+  const same=[...newIds].filter(id=>prevIds.has(id));
+  document.getElementById('diffSame').textContent=same.length.toLocaleString();
+  document.getElementById('diffAdded').textContent='+'+added.length.toLocaleString();
+  document.getElementById('diffLeft').textContent=left.length.toLocaleString();
+  document.getElementById('hcDiffWrap').style.display='block';
+  // Show resigned list
+  const resignedRows=prev.filter(r=>left.includes(norm(r['Employee No.'])));
+  if(resignedRows.length){
+    document.getElementById('resignedListWrap').style.display='block';
+    document.getElementById('resignedTableBody').innerHTML=resignedRows.map(r=>`
+      <tr>
+        <td><strong>${r['Employee No.']||'—'}</strong></td>
+        <td>${r['Employee Name']||'—'}</td>
+        <td>${r['Grade']||'—'}</td>
+        <td>${r['Group']||'—'}</td>
+        <td>${r['Functional Title']||'—'}</td>
+      </tr>`).join('');
+  } else {
+    document.getElementById('resignedListWrap').style.display='none';
+  }
+  return { added, left, same };
 }
 
-function showProgress(pct) {
-  const bar = document.getElementById('progressBar');
-  bar.style.display = 'block';
-  document.getElementById('progressFill').style.width = pct + '%';
+function processHeadcount(){
+  const btn=document.getElementById('hcProcessBtn');
+  let label=document.getElementById('hcMonthLabel').value.trim();
+  if(!label) label=new Date().toLocaleString('default',{month:'long',year:'numeric'});
+  if(!parsedHcRows.length){ showStatus('hcStatus','err','No Data','Parse a file first.'); return; }
+  btn.disabled=true; btn.innerHTML='⏳ Saving…';
+
+  const diff=computeHcDiff(parsedHcRows);
+  // Store resigned IDs persistently so dashboard can exclude them
+  let resignedIds=new Set();
+  try{ const r=JSON.parse(localStorage.getItem('ubl_resigned_ids')||'[]'); r.forEach(id=>resignedIds.add(id)); }catch(e){}
+  diff.left.forEach(id=>resignedIds.add(id));
+  // Remove from resigned if they re-joined
+  diff.added.forEach(id=>resignedIds.delete(id));
+  localStorage.setItem('ubl_resigned_ids',JSON.stringify([...resignedIds]));
+
+  // Save active headcount
+  const hcRecord={ month:label, rows:parsedHcRows, uploadedAt:new Date().toISOString(), total:parsedHcRows.length, added:diff.added.length, left:diff.left.length };
+  localStorage.setItem('ubl_hc_active',JSON.stringify(hcRecord));
+
+  // Append to history
+  let hcHistory=[]; try{ hcHistory=JSON.parse(localStorage.getItem('ubl_hc_history')||'[]'); }catch(e){}
+  hcHistory=hcHistory.filter(h=>h.month!==label);
+  hcHistory.push({ month:label, total:parsedHcRows.length, uploadedAt:new Date().toLocaleString('en-PK'), added:diff.added.length, left:diff.left.length });
+  localStorage.setItem('ubl_hc_history',JSON.stringify(hcHistory));
+
+  setTimeout(()=>{
+    btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save Headcount & Flag Resigned Employees';
+    showStatus('hcStatus','ok','✓ Headcount Saved',`${parsedHcRows.length.toLocaleString()} active employees for <strong>${label}</strong>. ${diff.left.length} resigned IDs flagged and excluded from program tracking.`);
+    refreshHcSummary();
+    parsedHcRows=[];
+    document.getElementById('hcPreviewWrap').style.display='none';
+    document.getElementById('hcProcessBtn').style.display='none';
+  },700);
 }
+
+function refreshHcSummary(){
+  let active=null, history=[];
+  try{ active=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); }catch(e){}
+  try{ history=JSON.parse(localStorage.getItem('ubl_hc_history')||'[]'); }catch(e){}
+  document.getElementById('hcTotal').textContent=active?active.total.toLocaleString():'0';
+  document.getElementById('hcLastMonth').textContent=history.length>1?history[history.length-2].month:'—';
+  document.getElementById('hcJoined').textContent=active?'+'+active.added:'0';
+  document.getElementById('hcLeft').textContent=active?'-'+active.left:'0';
+  const empty=document.getElementById('hcHistoryEmpty');
+  const tbody=document.getElementById('hcHistoryBody');
+  if(!history.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML=[...history].reverse().map(h=>`
+    <tr>
+      <td><strong>${h.month}</strong></td>
+      <td>${h.total.toLocaleString()}</td>
+      <td>${h.uploadedAt}</td>
+      <td><span class="badge badge-new">+${h.added}</span></td>
+      <td><span class="badge badge-resign">-${h.left}</span></td>
+      <td><button class="del-btn" onclick="deleteHcMonth('${h.month}')">Delete</button></td>
+    </tr>`).join('');
+}
+
+function deleteHcMonth(month){
+  if(!confirm(`Delete headcount for "${month}"?`)) return;
+  let h=[]; try{ h=JSON.parse(localStorage.getItem('ubl_hc_history')||'[]'); }catch(e){}
+  localStorage.setItem('ubl_hc_history',JSON.stringify(h.filter(x=>x.month!==month)));
+  let active=null; try{ active=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); }catch(e){}
+  if(active&&active.month===month) localStorage.removeItem('ubl_hc_active');
+  refreshHcSummary();
+}
+
+// ════════════════════════════════════════════════════════
+// PROGRAM CONFIG
+// ════════════════════════════════════════════════════════
+function getPrograms(){ try{ return JSON.parse(localStorage.getItem('ubl_programs')||'[]'); }catch(e){ return []; } }
+function savePrograms(progs){ localStorage.setItem('ubl_programs',JSON.stringify(progs)); }
+
+function addProgram(){
+  const name=document.getElementById('progName').value.trim();
+  const cat=document.getElementById('progCategory').value.trim();
+  const groupsRaw=document.getElementById('progGroups').value.trim();
+  const titlesRaw=document.getElementById('progTitles').value.trim();
+  const phasesRaw=document.getElementById('progPhases').value.trim();
+  const notes=document.getElementById('progNotes').value.trim();
+  if(!name||!cat){ showStatus('progAddStatus','err','Missing Fields','Program Name and Category are required.'); return; }
+  const groups=groupsRaw?groupsRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean):[];
+  const titles=titlesRaw?titlesRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean):[];
+  const phases=phasesRaw?phasesRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean):[];
+  const progs=getPrograms();
+  if(progs.find(p=>p.name===name)){ showStatus('progAddStatus','err','Duplicate','A program with this name already exists.'); return; }
+  progs.push({ id:Date.now().toString(), name, category:cat, groups, titles, phases, notes, createdAt:new Date().toLocaleString('en-PK') });
+  savePrograms(progs);
+  showStatus('progAddStatus','ok','✓ Program Added',`"${name}" configured with ${groups.length} group rule(s), ${titles.length} title rule(s), and ${phases.length||'no'} phase(s).`);
+  document.getElementById('progName').value='';
+  document.getElementById('progCategory').value='';
+  document.getElementById('progGroups').value='';
+  document.getElementById('progTitles').value='';
+  document.getElementById('progPhases').value='';
+  document.getElementById('progNotes').value='';
+  refreshProgList();
+}
+
+function deleteProgram(id){
+  if(!confirm('Remove this program configuration?')) return;
+  savePrograms(getPrograms().filter(p=>p.id!==id));
+  refreshProgList();
+}
+
+function refreshProgList(){
+  const progs=getPrograms();
+  document.getElementById('progCount').textContent=progs.length;
+  const container=document.getElementById('progList');
+  const empty=document.getElementById('progListEmpty');
+  if(!progs.length){ container.innerHTML=''; container.appendChild(empty); empty.style.display='block'; return; }
+  empty.style.display='none';
+  container.innerHTML=progs.map(p=>`
+    <div class="prog-item">
+      <div class="prog-item-head">
+        <div>
+          <div class="prog-item-name">${p.name}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Added ${p.createdAt}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="prog-item-cat">${p.category}</span>
+          <button class="del-btn" onclick="deleteProgram('${p.id}')">Remove</button>
+        </div>
+      </div>
+      <div class="prog-meta">
+        <div class="prog-meta-item">
+          <div class="prog-meta-lbl">Target Groups</div>
+          <div class="prog-meta-val">${p.groups.length?p.groups.join(', '):'<span style="color:var(--text4)">All groups</span>'}</div>
+        </div>
+        <div class="prog-meta-item">
+          <div class="prog-meta-lbl">Functional Titles</div>
+          <div class="prog-meta-val">${p.titles.length?p.titles.join(', '):'<span style="color:var(--text4)">All titles</span>'}</div>
+        </div>
+        <div class="prog-meta-item">
+          <div class="prog-meta-lbl">Notes</div>
+          <div class="prog-meta-val">${p.notes||'<span style="color:var(--text4)">—</span>'}</div>
+        </div>
+      </div>
+      ${p.phases.length?`<div style="margin-top:10px;font-size:10.5px;color:var(--text4);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.8px;">Phases</div><div class="prog-phases">${p.phases.map(ph=>`<span class="phase-chip">${ph}</span>`).join('')}</div>`:'<div style="margin-top:8px;font-size:11px;color:var(--text4)">No phases — standalone programme</div>'}
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+// SHARED: RENDER COL MAP & PREVIEW
+// ════════════════════════════════════════════════════════
+function renderColMap(mapId, wrapId, foundCols, expected){
+  document.getElementById(wrapId).style.display='block';
+  document.getElementById(mapId).innerHTML=expected.map(col=>{
+    const ok=foundCols.some(c=>{ const n=c.trim().toLowerCase(); return n===col.toLowerCase()||Object.keys(TRAINING_COL_MAP).some(k=>TRAINING_COL_MAP[k]===col&&k===n); });
+    return `<div class="col-item"><span class="col-name">${col}</span><span class="${ok?'col-ok':'col-miss'}">${ok?'✓ Found':'⚠ Not found'}</span></div>`;
+  }).join('');
+}
+
+function renderPreview(tableId, wrapId, countId, rows, preferredCols){
+  document.getElementById(wrapId).style.display='block';
+  if(!rows.length) return;
+  const cols=preferredCols.filter(c=>rows.some(r=>r[c]));
+  const thead=`<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>`;
+  const tbody=`<tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${r[c]||'—'}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  document.getElementById(tableId).innerHTML=thead+tbody;
+}
+
+// ════════════════════════════════════════════════════════
+// CLEAR FUNCTIONS
+// ════════════════════════════════════════════════════════
+function clearTrainingData(){ if(!confirm('Clear ALL training data?')) return; localStorage.removeItem('ubl_ld_data'); localStorage.removeItem('ubl_ld_meta'); refreshTrainingRepo(); showStatus('trainingStatus','info','Cleared','All training data removed.'); }
+function clearHeadcount(){ if(!confirm('Clear ALL headcount data?')) return; localStorage.removeItem('ubl_hc_active'); localStorage.removeItem('ubl_hc_history'); localStorage.removeItem('ubl_resigned_ids'); refreshHcSummary(); }
+function clearPrograms(){ if(!confirm('Clear ALL program configurations?')) return; localStorage.removeItem('ubl_programs'); refreshProgList(); }
 </script>
 </body>
 </html>
