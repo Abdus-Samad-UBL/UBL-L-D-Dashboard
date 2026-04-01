@@ -464,6 +464,31 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 // CHUNKED HEADCOUNT SYNC
 // Sends large headcount in 500-row batches to avoid Apps Script timeout
 // ════════════════════════════════════════════════════════
+async function syncTrainingInChunks(label, rows) {
+  const CHUNK = 500;
+  const total = rows.length;
+  let sent = 0;
+  try {
+    while (sent < total) {
+      const chunk = rows.slice(sent, sent + CHUNK);
+      await syncToSheets({
+        action: 'upload',
+        monthLabel: label,
+        rows: chunk,
+        isFirstChunk: sent === 0,
+        isFinalChunk: (sent + CHUNK) >= total,
+        totalRows: total,
+        uploadedBy: 'Admin'
+      });
+      sent += CHUNK;
+      if (sent < total) await new Promise(r => setTimeout(r, 150));
+    }
+    console.log(`Training data synced: ${total} rows in ${Math.ceil(total/CHUNK)} chunks`);
+  } catch(e) {
+    console.warn('Training Sheets sync failed (data saved locally):', e.message);
+  }
+}
+
 async function syncHeadcountInChunks(label, rows, resignedIds) {
   const CHUNK = 500;
   const total = rows.length;
@@ -684,41 +709,73 @@ function normalizeTrainingRow(r){
   return row;
 }
 
-function processTrainingData(){
+async function processTrainingData(){
   const btn=document.getElementById('trainingProcessBtn');
   let label=document.getElementById('monthLabel').value.trim();
   if(!label) label=`Upload ${new Date().toLocaleDateString('en-PK',{month:'long',year:'numeric'})}`;
   if(!parsedTrainingRows.length){ showStatus('trainingStatus','err','No Data','Parse a file first.'); return; }
-  btn.disabled=true; btn.innerHTML='⏳ Saving…';
-  const tagged=parsedTrainingRows.map(r=>({...r,_uploadMonth:label,_uploadedAt:new Date().toISOString()}));
-  let existing=[];
-  try{ existing=JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); }catch(e){}
-  existing=existing.filter(r=>r._uploadMonth!==label);
-  localStorage.setItem('ubl_ld_data',JSON.stringify([...existing,...tagged]));
-  // Save meta
-  let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
-  meta=meta.filter(m=>m.month!==label);
-  const courses=new Set(tagged.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
-  const clusters=[...new Set(tagged.map(r=>norm(r['Cluster'])).filter(Boolean))].join(', ');
-  meta.push({month:label,count:tagged.length,uploadedAt:new Date().toLocaleString('en-PK'),courses,clusters});
-  localStorage.setItem('ubl_ld_meta',JSON.stringify(meta));
-  // Sync to Google Sheets in background
-  syncToSheets({ action:'upload', monthLabel:label, rows:tagged, uploadedBy:'Admin' })
-    .then(r => {
-      if(r && r.success) console.log('Sheets sync OK:', r.message);
-      else console.warn('Sheets sync note:', r && r.error);
-    });
 
-  setTimeout(()=>{
-    btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save to Repository & Update Dashboard';
-    showStatus('trainingStatus','ok','✓ Saved Successfully',`${tagged.length.toLocaleString()} records saved for <strong>${label}</strong> and synced to Google Sheets. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
-    refreshTrainingRepo();
-    parsedTrainingRows=[];
-    document.getElementById('trainingPreviewWrap').style.display='none';
-    document.getElementById('trainingColMapWrap').style.display='none';
-    document.getElementById('trainingProcessBtn').style.display='none';
-    document.getElementById('monthLabel').value='';
-  },700);
+  btn.disabled=true; btn.innerHTML='⏳ Saving…';
+  showStatus('trainingStatus','info','Saving…',`Saving ${parsedTrainingRows.length.toLocaleString()} records for <strong>${label}</strong>. Please wait.`);
+
+  // Yield to browser so the UI updates before we do the heavy work
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  const tagged = parsedTrainingRows.map(r=>({...r, _uploadMonth:label, _uploadedAt:new Date().toISOString()}));
+
+  // ── Save to localStorage ──────────────────────────────────────────────────
+  // Strip each row to only the columns needed by the dashboard to reduce size
+  const KEEP = ['Region','Employee No.','Employee Name','Functional Title','Grade','Group',
+                'POP Code','Cluster','Attendance Status','Course Title','Training Type',
+                'Test Score','Trainer Name','From','To','Duration','Training Venue','Category',
+                '_month','_quarter','_uploadMonth','_uploadedAt'];
+
+  const slim = tagged.map(r => {
+    const s = {};
+    KEEP.forEach(k => { if(r[k] !== undefined) s[k] = r[k]; });
+    return s;
+  });
+
+  // Get existing data, remove same month, append new
+  let existing = [];
+  try { existing = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]'); } catch(e) {}
+  existing = existing.filter(r => r._uploadMonth !== label);
+  const merged = [...existing, ...slim];
+
+  try {
+    localStorage.setItem('ubl_ld_data', JSON.stringify(merged));
+  } catch(storageErr) {
+    // localStorage quota exceeded — keep only current month in local storage
+    console.warn('localStorage full, keeping current month only:', storageErr);
+    try {
+      localStorage.setItem('ubl_ld_data', JSON.stringify(slim));
+    } catch(e2) {
+      console.error('localStorage completely full:', e2);
+    }
+  }
+
+  // Save meta
+  let meta = []; try { meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]'); } catch(e) {}
+  meta = meta.filter(m => m.month !== label);
+  const courses  = new Set(tagged.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
+  const clusters = [...new Set(tagged.map(r=>norm(r['Cluster'])).filter(Boolean))].join(', ');
+  meta.push({ month:label, count:tagged.length, uploadedAt:new Date().toLocaleString('en-PK'), courses, clusters });
+  localStorage.setItem('ubl_ld_meta', JSON.stringify(meta));
+
+  // ── Sync to Google Sheets in chunks (background, non-blocking) ───────────
+  syncTrainingInChunks(label, tagged);
+
+  // ── Done ─────────────────────────────────────────────────────────────────
+  btn.disabled=false;
+  btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save to Repository & Update Dashboard';
+  showStatus('trainingStatus','ok','✓ Saved Successfully',
+    `${tagged.length.toLocaleString()} records saved for <strong>${label}</strong>. Syncing to Google Sheets in background. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
+  refreshTrainingRepo();
+  parsedTrainingRows=[];
+  document.getElementById('trainingPreviewWrap').style.display='none';
+  document.getElementById('trainingColMapWrap').style.display='none';
+  document.getElementById('trainingProcessBtn').style.display='none';
+  document.getElementById('monthLabel').value='';
 }
 
 function refreshTrainingRepo(){
