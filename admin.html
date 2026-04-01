@@ -408,6 +408,28 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
   <div class="page-h">Admin Settings</div>
   <div class="page-sub">Manage credentials and data for this admin panel.</div>
 
+  <div class="sec">Google Apps Script Backend (Optional)</div>
+  <div class="card" style="margin-bottom:20px">
+    <p style="font-size:12.5px;color:var(--text2);margin-bottom:14px;line-height:1.7">
+      Connect to a Google Apps Script Web App to sync data across devices and browsers.
+      Without this, data is stored locally in this browser only.<br>
+      <a href="https://docs.google.com/spreadsheets" target="_blank" style="color:var(--ubl);font-size:11.5px">→ How to set up: Deploy Code.gs as a Web App in Google Sheets → Apps Script</a>
+    </p>
+    <div class="field" style="margin-bottom:12px">
+      <label class="field-lbl">Apps Script Web App URL</label>
+      <input class="field-inp" type="url" id="appsScriptUrl"
+        placeholder="https://script.google.com/macros/s/.../exec"
+        style="font-size:12px"/>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <button onclick="saveAppsScriptUrl()" style="padding:9px 20px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;box-shadow:var(--sh-ubl)">Save URL</button>
+      <button onclick="testAppsScriptUrl()" style="padding:9px 20px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Test Connection</button>
+      <button onclick="clearAppsScriptUrl()" style="padding:9px 20px;background:var(--bg2);color:var(--red);border:1px solid var(--border);border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Remove URL</button>
+      <span id="appsScriptStatus" style="font-size:12px;color:var(--text3)"></span>
+    </div>
+    <div id="appsScriptCurrent" style="margin-top:10px;font-size:11.5px;color:var(--text3)"></div>
+  </div>
+
   <div class="sec">Change Credentials</div>
   <div class="card">
     <div class="settings-grid">
@@ -488,6 +510,7 @@ function initAdmin(){
   refreshTrainingRepo();
   refreshHcSummary();
   refreshProgList();
+  refreshAppsScriptDisplay();
 }
 
 // ════════════════════════════════════════════════════════
@@ -667,7 +690,7 @@ function handleHcFile(file){
   showStatus('hcStatus','info','Reading headcount file…',`Processing: ${file.name}`);
   const sn=document.getElementById('hcSheetName').value.trim();
   readExcel(file, sn, (raw, sheetUsed)=>{
-    showProg('hcProgFill','hcProgFill',75);
+    showProg('hcProgBar','hcProgFill',75);
     parsedHcRows = raw.map(r=>{ const row={}; Object.keys(r).forEach(k=>{ const mapped=HC_COL_MAP[k.trim().toLowerCase()]||k.trim(); row[mapped]=norm(r[k]); }); return row; });
     showProg('hcProgBar','hcProgFill',100);
     if(!parsedHcRows.length){ showStatus('hcStatus','err','No Data','File appears empty.'); return; }
@@ -877,6 +900,56 @@ function renderPreview(tableId, wrapId, countId, rows, preferredCols){
 // ════════════════════════════════════════════════════════
 // CLEAR FUNCTIONS
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// APPS SCRIPT URL
+// ════════════════════════════════════════════════════════
+function saveAppsScriptUrl() {
+  const url = document.getElementById('appsScriptUrl').value.trim();
+  if (!url) { showAppsStatus('Enter a URL first.', 'var(--red)'); return; }
+  if (!url.startsWith('https://script.google.com')) {
+    showAppsStatus('URL must start with https://script.google.com', 'var(--red)'); return;
+  }
+  localStorage.setItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec', url);
+  showAppsStatus('✓ URL saved.', 'var(--green)');
+  refreshAppsScriptDisplay();
+}
+
+function testAppsScriptUrl() {
+  const url = localStorage.getItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec');
+  if (!url) { showAppsStatus('No URL saved yet.', 'var(--amber)'); return; }
+  showAppsStatus('Testing connection…', 'var(--text3)');
+  fetch(url)
+    .then(r => r.json())
+    .then(d => showAppsStatus('✓ Connected: ' + (d.message || 'OK'), 'var(--green)'))
+    .catch(e => showAppsStatus('✗ Connection failed: ' + e.message, 'var(--red)'));
+}
+
+function clearAppsScriptUrl() {
+  localStorage.removeItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec');
+  document.getElementById('appsScriptUrl').value = '';
+  showAppsStatus('URL removed.', 'var(--text3)');
+  refreshAppsScriptDisplay();
+}
+
+function showAppsStatus(msg, color) {
+  const el = document.getElementById('appsScriptStatus');
+  el.textContent = msg;
+  el.style.color = color;
+  setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4000);
+}
+
+function refreshAppsScriptDisplay() {
+  const url = localStorage.getItem('https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec');
+  const el = document.getElementById('appsScriptCurrent');
+  if (url) {
+    el.innerHTML = `<strong style="color:var(--green)">✓ Connected</strong> · <span style="word-break:break-all">${url}</span>`;
+    // Pre-fill the input
+    document.getElementById('appsScriptUrl').value = url;
+  } else {
+    el.innerHTML = '<span style="color:var(--text4)">No URL configured — data stored locally in this browser only.</span>';
+  }
+}
+
 function clearTrainingData(){ if(!confirm('Clear ALL training data?')) return; localStorage.removeItem('ubl_ld_data'); localStorage.removeItem('ubl_ld_meta'); refreshTrainingRepo(); showStatus('trainingStatus','info','Cleared','All training data removed.'); }
 function clearHeadcount(){ if(!confirm('Clear ALL headcount data?')) return; localStorage.removeItem('ubl_hc_active'); localStorage.removeItem('ubl_hc_history'); localStorage.removeItem('ubl_resigned_ids'); refreshHcSummary(); }
 function clearPrograms(){ if(!confirm('Clear ALL program configurations?')) return; localStorage.removeItem('ubl_programs'); refreshProgList(); }
