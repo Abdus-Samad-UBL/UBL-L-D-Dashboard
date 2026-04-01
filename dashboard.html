@@ -4,437 +4,1004 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>UBL L&D — Executive Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
 :root {
-  --ubl:#0175C0; --ubl-dark:#015a94; --ubl-deeper:#01406b;
-  --ubl-light:#e8f4fd;
-  --ibg:#1a7a4a; --ibg-light:#e6f4ee; --ibg-border:#a7d7bb;
-  --conv:#c47c00; --conv-light:#fff8e6; --conv-border:#f0cc80;
-  --ho:#5c3d99; --ho-light:#f0ebff; --ho-border:#c4b0e8;
-  --bg:#f0f4f8; --bg2:#e4ecf4;
-  --surface:#ffffff; --surface2:#f7fafd;
-  --border:#dde6ef; --border2:#c8d9e8;
-  --text:#0d1f2d; --text-muted:#5a7389; --text-dim:#8faabb;
-  --green:#059669; --green-bg:#ecfdf5;
-  --red:#dc2626; --red-bg:#fef2f2;
-  --amber:#d97706; --amber-bg:#fffbeb;
-  --shadow-sm:0 1px 3px rgba(1,64,107,0.08),0 1px 2px rgba(1,64,107,0.04);
-  --shadow:0 4px 16px rgba(1,64,107,0.10),0 1px 4px rgba(1,64,107,0.06);
-  --radius:16px;
+  /* Brand */
+  --ubl:        #0175C0;
+  --ubl-mid:    #0190e8;
+  --ubl-dark:   #015494;
+  --ubl-deeper: #012d52;
+  --ubl-pale:   #f0f8ff;
+  --ubl-tint:   #e0f0fb;
+  --ubl-glass:  rgba(1,117,192,0.08);
+
+  /* Segment colours */
+  --ibg:        #0d7a50;
+  --ibg-tint:   #edf7f3;
+  --ibg-mid:    #12a06a;
+  --conv:       #b86000;
+  --conv-tint:  #fdf5e8;
+  --conv-mid:   #e07800;
+  --ho:         #5235a0;
+  --ho-tint:    #f2effe;
+  --ho-mid:     #6b4dcf;
+
+  /* Neutrals */
+  --bg:         #f4f7fb;
+  --bg-alt:     #edf1f7;
+  --surface:    #ffffff;
+  --surface-2:  #fafbfd;
+  --border:     #e3e9f2;
+  --border-2:   #d0daea;
+
+  /* Text */
+  --text:       #0c1a27;
+  --text-2:     #3d5166;
+  --text-3:     #7a90a4;
+  --text-4:     #aabccc;
+
+  /* Status */
+  --green:      #0a8f5c;
+  --green-tint: #eafaf3;
+  --red:        #d03030;
+  --red-tint:   #fff0f0;
+  --amber:      #c47500;
+  --amber-tint: #fff8ec;
+
+  /* Shadows */
+  --sh-xs:  0 1px 3px rgba(1,45,82,0.06);
+  --sh-sm:  0 2px 8px rgba(1,45,82,0.08), 0 1px 2px rgba(1,45,82,0.04);
+  --sh-md:  0 6px 24px rgba(1,45,82,0.10), 0 2px 6px rgba(1,45,82,0.06);
+  --sh-lg:  0 16px 48px rgba(1,45,82,0.14), 0 4px 12px rgba(1,45,82,0.08);
+  --sh-ubl: 0 8px 24px rgba(1,117,192,0.28);
+
+  /* Geometry */
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   20px;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
 
-/* TOPBAR */
-.topbar{background:linear-gradient(135deg,var(--ubl-deeper) 0%,var(--ubl) 60%,#0199e0 100%);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(1,64,107,0.3)}
-.topbar-left{display:flex;align-items:center;gap:16px}
-.logo-wrap{display:flex;align-items:center;gap:12px;text-decoration:none}
-.logo-box{width:38px;height:38px;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.35);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-size:15px;color:#fff}
-.logo-text{display:flex;flex-direction:column}
-.logo-main{font-size:15px;font-weight:700;color:#fff;line-height:1.2}
-.logo-sub{font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:1.2px;text-transform:uppercase;font-weight:500}
-.topbar-divider{width:1px;height:28px;background:rgba(255,255,255,0.2)}
-.topbar-title{font-size:14px;font-weight:500;color:rgba(255,255,255,0.85)}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.data-status{display:flex;align-items:center;gap:7px;padding:6px 14px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;font-size:12px;color:rgba(255,255,255,0.9)}
-.status-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;animation:blink 2s infinite}
-.status-dot.no-data{background:#fbbf24;box-shadow:0 0 6px #fbbf24;animation:none}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
-.btn-outline{padding:7px 16px;background:rgba(255,255,255,0.1);border:1.5px solid rgba(255,255,255,0.3);border-radius:8px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;text-decoration:none}
-.btn-outline:hover{background:rgba(255,255,255,0.2)}
-.btn-solid{padding:7px 16px;background:#fff;border:none;border-radius:8px;color:var(--ubl);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:6px;text-decoration:none}
-.btn-solid:hover{background:var(--ubl-light)}
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* FILTER BAR */
-.filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 32px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
-.filter-group{display:flex;align-items:center;gap:7px}
-.filter-label{font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
-.toggle-group{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden}
-.toggle-btn{padding:5px 12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text-muted);background:transparent;border:none;cursor:pointer;transition:all 0.18s;white-space:nowrap}
-.toggle-btn.active{background:var(--ubl);color:#fff}
-.toggle-btn.ibg-active{background:var(--ibg)!important;color:#fff!important}
-.toggle-btn.conv-active{background:var(--conv)!important;color:#fff!important}
-.toggle-btn.ho-active{background:var(--ho)!important;color:#fff!important}
-.toggle-btn:hover:not(.active):not(.ibg-active):not(.conv-active):not(.ho-active){background:var(--bg2);color:var(--text)}
-.filter-select{padding:5px 10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;outline:none;transition:border-color 0.2s}
-.filter-select:focus{border-color:var(--ubl)}
-.filter-spacer{flex:1}
-.filter-meta{font-size:11px;color:var(--text-dim);white-space:nowrap}
-.filter-meta strong{color:var(--ubl)}
-
-/* MAIN */
-.main{padding:24px 32px;max-width:1600px;margin:0 auto}
-
-/* EMPTY STATE */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px;text-align:center}
-.empty-icon{width:80px;height:80px;border-radius:20px;background:var(--ubl-light);display:flex;align-items:center;justify-content:center;font-size:36px}
-.empty-title{font-size:22px;font-weight:700;color:var(--text);font-family:'Instrument Serif',serif}
-.empty-sub{font-size:14px;color:var(--text-muted);max-width:420px;line-height:1.7}
-.empty-btn{padding:11px 28px;background:var(--ubl);color:#fff;border:none;border-radius:10px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:all 0.2s;display:inline-flex;align-items:center;gap:8px}
-.empty-btn:hover{background:var(--ubl-dark);transform:translateY(-1px)}
-
-/* SECTION HEADER */
-.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:24px}
-.section-hdr:first-of-type{margin-top:0}
-.section-title{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;display:flex;align-items:center;gap:7px}
-.section-title::before{content:'';width:3px;height:13px;background:var(--ubl);border-radius:2px}
-
-/* KPI CARDS */
-.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
-@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden;box-shadow:var(--shadow-sm);transition:box-shadow 0.2s,transform 0.2s;animation:fadeUp 0.4s ease both}
-.kpi-card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
-.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-accent,var(--ubl));border-radius:var(--radius) var(--radius) 0 0}
-.kpi-card:nth-child(1){animation-delay:.05s}.kpi-card:nth-child(2){animation-delay:.1s}.kpi-card:nth-child(3){animation-delay:.15s}.kpi-card:nth-child(4){animation-delay:.2s}.kpi-card:nth-child(5){animation-delay:.25s}
-.kpi-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
-.kpi-icon{width:36px;height:36px;border-radius:9px;background:var(--icon-bg,var(--ubl-light));display:flex;align-items:center;justify-content:center;font-size:16px}
-.kpi-trend{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px}
-.trend-up{background:var(--green-bg);color:var(--green)}.trend-down{background:var(--red-bg);color:var(--red)}.trend-flat{background:var(--ubl-light);color:var(--ubl)}
-.kpi-val{font-size:30px;font-weight:800;color:var(--text);line-height:1;letter-spacing:-1px;margin-bottom:3px;font-family:'Instrument Serif',serif}
-.kpi-label{font-size:12px;font-weight:500;color:var(--text-muted)}
-.kpi-sub{font-size:11px;color:var(--text-dim);margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
-
-/* INFO ROW */
-.info-row{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:13px}
-.info-chip{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-sm)}
-.info-chip-icon{font-size:20px}
-.info-chip-val{font-size:20px;font-weight:800;font-family:'Instrument Serif',serif;color:var(--text);line-height:1}
-.info-chip-lbl{font-size:11px;color:var(--text-muted);margin-top:2px}
-
-/* BANKING SEGMENT CARDS */
-.banking-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
-.banking-card{border-radius:var(--radius);padding:18px;border:1px solid;box-shadow:var(--shadow-sm);animation:fadeUp 0.4s ease 0.2s both}
-.banking-card.ibg{background:var(--ibg-light);border-color:var(--ibg-border);--bk:var(--ibg)}
-.banking-card.conv{background:var(--conv-light);border-color:var(--conv-border);--bk:var(--conv)}
-.banking-card.ho{background:var(--ho-light);border-color:var(--ho-border);--bk:var(--ho)}
-.bk-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--bk);margin-bottom:4px}
-.bk-val{font-size:32px;font-weight:800;font-family:'Instrument Serif',serif;color:var(--text);line-height:1;margin-bottom:2px}
-.bk-sub{font-size:11px;color:var(--text-muted);margin-bottom:12px}
-.bk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.bk-stat{background:rgba(255,255,255,0.65);border-radius:8px;padding:7px 9px}
-.bk-stat-val{font-size:14px;font-weight:700;color:var(--bk)}
-.bk-stat-lbl{font-size:10px;color:var(--text-dim);margin-top:1px}
-
-/* REGION (L&D CENTER) CARDS */
-.region-row{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
-.region-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;animation:fadeUp 0.4s ease 0.25s both;transition:box-shadow 0.2s}
-.region-card:hover{box-shadow:var(--shadow)}
-.region-top-bar{position:absolute;top:0;left:0;right:0;height:4px;background:var(--r-color,var(--ubl))}
-.region-icon{font-size:22px;margin-bottom:8px}
-.region-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.8px;color:var(--text-muted);margin-bottom:4px}
-.region-val{font-size:36px;font-weight:800;font-family:'Instrument Serif',serif;color:var(--text);line-height:1;margin-bottom:2px}
-.region-sub{font-size:11px;color:var(--text-dim);margin-bottom:14px}
-.region-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
-.r-stat{background:var(--bg);border-radius:8px;padding:8px 10px}
-.r-stat-val{font-size:15px;font-weight:700;color:var(--r-color,var(--ubl))}
-.r-stat-lbl{font-size:10px;color:var(--text-dim);margin-top:1px}
-.region-bar{margin-top:14px;display:flex;align-items:center;gap:8px}
-.region-bar-track{flex:1;height:7px;background:var(--bg2);border-radius:4px;overflow:hidden}
-.region-bar-fill{height:100%;border-radius:4px;background:var(--r-color,var(--ubl));transition:width 0.8s ease}
-.region-rate-lbl{font-size:12px;font-weight:700;color:var(--r-color,var(--ubl));min-width:38px;text-align:right}
-@media(max-width:900px){.region-row{grid-template-columns:1fr}}
-
-/* CLUSTER CARDS */
-.cluster-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:13px}
-.cluster-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;animation:fadeUp 0.4s ease 0.3s both;transition:box-shadow 0.2s}
-.cluster-card:hover{box-shadow:var(--shadow)}
-.cluster-accent{position:absolute;top:0;left:0;bottom:0;width:4px;background:var(--c-color,var(--ubl));border-radius:var(--radius) 0 0 var(--radius)}
-.cluster-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:5px}
-.cluster-val{font-size:28px;font-weight:800;font-family:'Instrument Serif',serif;color:var(--text);line-height:1;margin-bottom:3px}
-.cluster-sub{font-size:11px;color:var(--text-dim);margin-bottom:12px}
-.cluster-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.c-stat{background:var(--bg);border-radius:8px;padding:7px 9px}
-.c-stat-val{font-size:14px;font-weight:700;color:var(--text)}
-.c-stat-lbl{font-size:10px;color:var(--text-dim);margin-top:1px}
-
-/* CHARTS */
-.charts-2col{display:grid;grid-template-columns:1.6fr 1fr;gap:13px;margin-bottom:13px}
-.charts-3col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:13px}
-.charts-2col-eq{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);animation:fadeUp 0.5s ease 0.3s both}
-.card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
-.card-title{font-size:14px;font-weight:700;color:var(--text);line-height:1.3}
-.card-sub{font-size:11px;color:var(--text-dim);margin-top:3px}
-.card-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--ubl-light);color:var(--ubl);white-space:nowrap;flex-shrink:0}
-
-/* TABLES */
-.att-table{width:100%;border-collapse:collapse}
-.att-table thead th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);padding:0 10px 10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-.att-table tbody td{padding:9px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);vertical-align:middle}
-.att-table tbody tr:last-child td{border-bottom:none}
-.att-table tbody tr:hover td{background:var(--surface2)}
-.td-name{font-weight:600;color:var(--text)!important}
-.td-name span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
-.att-bar-wrap{display:flex;align-items:center;gap:7px}
-.att-bar-track{flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden;min-width:50px}
-.att-bar-fill{height:100%;border-radius:3px}
-.att-pct{font-size:11px;font-weight:700;min-width:32px;text-align:right}
-.grade-table{width:100%;border-collapse:collapse}
-.grade-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);padding:0 10px 10px;border-bottom:1px solid var(--border);text-align:left}
-.grade-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);vertical-align:middle}
-.grade-table tr:last-child td{border-bottom:none}
-.grade-pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;background:var(--ubl-light);color:var(--ubl)}
-
-/* MODULES & NA */
-.mod-tag{display:inline-block;font-size:10px;padding:2px 7px;background:var(--bg2);color:var(--text-muted);border-radius:6px;margin:1px 2px 1px 0}
-.na-pill{font-size:11px;color:var(--text-dim);font-style:italic}
-
-/* HISTORY */
-.history-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-.month-chip{padding:4px 12px;border-radius:20px;background:var(--ubl-light);color:var(--ubl);font-size:11px;font-weight:600;border:1px solid var(--border2);cursor:pointer;transition:all 0.15s}
-.month-chip:hover,.month-chip.active{background:var(--ubl);color:#fff;border-color:var(--ubl)}
-
-/* PRINT */
-@media print{
-  .topbar,.filter-bar,.btn-outline,.btn-solid,.empty-btn{display:none!important}
-  body{background:#fff!important}
-  .card,.kpi-card,.cluster-card,.banking-card{box-shadow:none!important;border:1px solid #ddd!important;break-inside:avoid}
-  .main{padding:12px!important}
-  .kpi-grid{grid-template-columns:repeat(5,1fr)!important}
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-@media(max-width:1200px){
-  .kpi-grid{grid-template-columns:repeat(3,1fr)}
-  .charts-2col,.charts-3col,.banking-grid{grid-template-columns:1fr}
+
+/* Subtle dot grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(1,117,192,0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
 }
+
+/* ═══════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════ */
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  height: 60px;
+  background: var(--ubl-deeper);
+  background: linear-gradient(135deg, #012240 0%, #014a82 45%, #0175C0 100%);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08), var(--sh-md);
+}
+
+/* subtle shimmer line at top */
+.topbar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+}
+
+.tb-left  { display: flex; align-items: center; gap: 18px; }
+.tb-right { display: flex; align-items: center; gap: 10px; }
+
+.logo-wrap { display: flex; align-items: center; gap: 11px; text-decoration: none; }
+.logo-emblem {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+  backdrop-filter: blur(8px);
+}
+.logo-text-wrap { display: flex; flex-direction: column; gap: 0; }
+.logo-name { font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; color: #fff; line-height: 1.2; letter-spacing: -0.2px; }
+.logo-tagline { font-size: 9.5px; color: rgba(255,255,255,0.55); letter-spacing: 1.4px; text-transform: uppercase; font-weight: 500; }
+
+.tb-sep { width: 1px; height: 24px; background: rgba(255,255,255,0.15); }
+.tb-page-title { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.75); letter-spacing: 0.1px; }
+
+.live-chip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 13px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 20px;
+  font-size: 11.5px; color: rgba(255,255,255,0.85); font-weight: 500;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 0 2px rgba(74,222,128,0.25);
+  animation: pulse 2s infinite;
+}
+.live-dot.off { background: #fbbf24; box-shadow: 0 0 0 2px rgba(251,191,36,0.25); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.65;transform:scale(0.85)} }
+
+.tb-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.tb-btn-ghost {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.88);
+}
+.tb-btn-ghost:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.3); }
+.tb-btn-solid {
+  background: #fff;
+  border: none;
+  color: var(--ubl);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.tb-btn-solid:hover { background: var(--ubl-tint); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
+/* ═══════════════════════════════════════════════
+   FILTER BAR
+═══════════════════════════════════════════════ */
+.filter-bar {
+  position: sticky; top: 60px; z-index: 100;
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 9px 28px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  box-shadow: var(--sh-xs);
+}
+
+.fl-group { display: flex; align-items: center; gap: 6px; }
+.fl-label {
+  font-size: 9.5px; font-weight: 700;
+  color: var(--text-4); text-transform: uppercase; letter-spacing: 1.1px;
+  white-space: nowrap;
+}
+
+.seg-group {
+  display: flex;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  padding: 2px;
+  gap: 2px;
+}
+.seg-btn {
+  padding: 4px 11px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px; font-weight: 600;
+  color: var(--text-3);
+  background: transparent;
+  border: none; border-radius: 6px;
+  cursor: pointer; transition: all 0.16s;
+  white-space: nowrap;
+}
+.seg-btn.active   { background: var(--ubl);   color: #fff; box-shadow: var(--sh-ubl); }
+.seg-btn.ibg-on   { background: var(--ibg);   color: #fff; }
+.seg-btn.conv-on  { background: var(--conv);  color: #fff; }
+.seg-btn.ho-on    { background: var(--ho);    color: #fff; }
+.seg-btn:hover:not(.active):not(.ibg-on):not(.conv-on):not(.ho-on) { background: var(--border); color: var(--text-2); }
+
+.fl-select {
+  padding: 5px 10px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 11.5px; font-weight: 500;
+  color: var(--text);
+  cursor: pointer; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237a90a4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 26px;
+}
+.fl-select:focus { border-color: var(--ubl); box-shadow: 0 0 0 3px var(--ubl-glass); }
+
+.fl-divider { width: 1px; height: 20px; background: var(--border); }
+.fl-spacer  { flex: 1; }
+.fl-meta    { font-size: 11px; color: var(--text-4); white-space: nowrap; }
+.fl-meta strong { color: var(--ubl); font-weight: 700; }
+
+/* ═══════════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════════ */
+.main {
+  position: relative; z-index: 1;
+  padding: 24px 28px 40px;
+  max-width: 1680px; margin: 0 auto;
+}
+
+/* ═══════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 58vh; gap: 18px; text-align: center;
+}
+.empty-orb {
+  width: 88px; height: 88px; border-radius: 24px;
+  background: linear-gradient(135deg, var(--ubl-tint), var(--ubl-pale));
+  border: 1px solid var(--ubl-tint);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px;
+  box-shadow: var(--sh-md);
+}
+.empty-h { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); }
+.empty-p { font-size: 14px; color: var(--text-3); max-width: 380px; line-height: 1.75; }
+.empty-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 26px;
+  background: var(--ubl); color: #fff;
+  border: none; border-radius: var(--r-md);
+  font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+  box-shadow: var(--sh-ubl);
+  transition: all 0.2s;
+}
+.empty-cta:hover { background: var(--ubl-dark); transform: translateY(-2px); box-shadow: 0 10px 28px rgba(1,117,192,0.36); }
+
+/* ═══════════════════════════════════════════════
+   SECTION HEADERS
+═══════════════════════════════════════════════ */
+.sec {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 26px 0 13px;
+}
+.sec:first-child { margin-top: 0; }
+.sec-title {
+  display: flex; align-items: center; gap: 9px;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px; font-weight: 700;
+  color: var(--text-3); text-transform: uppercase; letter-spacing: 1.4px;
+}
+.sec-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  background: linear-gradient(180deg, var(--ubl), var(--ubl-mid));
+  border-radius: 2px;
+}
+.sec-note { font-size: 11px; color: var(--text-4); }
+
+/* ═══════════════════════════════════════════════
+   KPI STRIP
+═══════════════════════════════════════════════ */
+.kpi-strip { display: grid; grid-template-columns: repeat(5,1fr); gap: 13px; }
+
+@keyframes slideUp {
+  from { opacity:0; transform: translateY(18px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 20px 16px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--sh-sm);
+  transition: box-shadow 0.22s, transform 0.22s;
+  animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1) both;
+}
+.kpi:hover { box-shadow: var(--sh-md); transform: translateY(-3px); }
+
+/* Accent stripe */
+.kpi::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--k-color, var(--ubl));
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+/* Soft glow blob */
+.kpi::after {
+  content: '';
+  position: absolute; top: -20px; right: -20px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--k-color, var(--ubl));
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+.kpi:nth-child(1){ animation-delay:.04s }
+.kpi:nth-child(2){ animation-delay:.09s }
+.kpi:nth-child(3){ animation-delay:.14s }
+.kpi:nth-child(4){ animation-delay:.19s }
+.kpi:nth-child(5){ animation-delay:.24s }
+
+.kpi-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+.kpi-ico  {
+  width: 38px; height: 38px; border-radius: var(--r-sm);
+  background: var(--k-bg, var(--ubl-tint));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+}
+.kpi-badge {
+  font-size: 10.5px; font-weight: 700;
+  padding: 3px 8px; border-radius: 20px;
+}
+.b-flat { background: var(--ubl-tint); color: var(--ubl); }
+.b-up   { background: var(--green-tint); color: var(--green); }
+.b-dn   { background: var(--red-tint); color: var(--red); }
+
+.kpi-num  {
+  font-family: 'Sora', sans-serif;
+  font-size: 32px; font-weight: 800;
+  color: var(--text); line-height: 1; letter-spacing: -1.5px;
+  margin-bottom: 3px;
+}
+.kpi-lbl  { font-size: 12px; font-weight: 500; color: var(--text-3); }
+.kpi-foot {
+  font-size: 11px; color: var(--text-4);
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   INFO CHIPS (secondary KPIs)
+═══════════════════════════════════════════════ */
+.info-row { display: grid; grid-template-columns: repeat(2,1fr); gap: 13px; margin-top: 13px; }
+.info-chip {
+  background: linear-gradient(135deg, var(--ubl-deeper) 0%, var(--ubl-dark) 100%);
+  border-radius: var(--r-md);
+  padding: 15px 20px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--sh-ubl);
+  animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1) 0.28s both;
+}
+.ic-ico   { font-size: 22px; }
+.ic-val   { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; color: #fff; line-height: 1; }
+.ic-lbl   { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+/* ═══════════════════════════════════════════════
+   BANKING SEGMENT CARDS
+═══════════════════════════════════════════════ */
+.bk-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
+
+.bk-card {
+  border-radius: var(--r-lg);
+  padding: 20px;
+  border: 1px solid;
+  position: relative; overflow: hidden;
+  box-shadow: var(--sh-sm);
+  animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1) 0.18s both;
+  transition: box-shadow 0.22s, transform 0.22s;
+}
+.bk-card:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+
+/* diagonal stripe texture */
+.bk-card::before {
+  content: '';
+  position: absolute; top: -40px; right: -40px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: var(--bk-color);
+  opacity: 0.07;
+}
+
+.bk-card.ibg  { background: var(--ibg-tint);  border-color: #b8ddd0; --bk-color: var(--ibg); }
+.bk-card.conv { background: var(--conv-tint);  border-color: #e8ceaa; --bk-color: var(--conv); }
+.bk-card.ho   { background: var(--ho-tint);    border-color: #c8b8e8; --bk-color: var(--ho); }
+
+.bk-eyebrow { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.6px; color: var(--bk-color); margin-bottom: 6px; }
+.bk-num { font-family: 'Sora', sans-serif; font-size: 34px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 3px; }
+.bk-sub { font-size: 11px; color: var(--text-3); margin-bottom: 14px; }
+.bk-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+.bk-st {
+  background: rgba(255,255,255,0.7);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.8);
+}
+.bk-st-v { font-size: 14px; font-weight: 700; color: var(--bk-color); line-height: 1; }
+.bk-st-l { font-size: 9.5px; color: var(--text-3); margin-top: 2px; }
+
+/* ═══════════════════════════════════════════════
+   REGION CARDS (L&D Centers)
+═══════════════════════════════════════════════ */
+.rg-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
+
+.rg-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--sh-sm);
+  animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1) 0.22s both;
+  transition: box-shadow 0.22s, transform 0.22s;
+}
+.rg-card:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
+
+.rg-card::before { /* left accent bar */
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, var(--rg-color), color-mix(in srgb, var(--rg-color) 60%, transparent));
+  border-radius: var(--r-lg) 0 0 var(--r-lg);
+}
+
+/* big faded letter watermark */
+.rg-card::after {
+  content: attr(data-initial);
+  position: absolute; right: 12px; bottom: -8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 72px; font-weight: 800;
+  color: var(--rg-color);
+  opacity: 0.05; line-height: 1;
+  pointer-events: none; user-select: none;
+}
+
+.rg-inner { padding-left: 10px; }
+.rg-eyebrow { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.6px; color: var(--rg-color); margin-bottom: 5px; }
+.rg-num { font-family: 'Sora', sans-serif; font-size: 38px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 2px; }
+.rg-sub { font-size: 11px; color: var(--text-3); margin-bottom: 14px; }
+.rg-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-bottom: 14px; }
+.rg-st { background: var(--bg); border-radius: var(--r-sm); padding: 8px 10px; }
+.rg-st-v { font-size: 14px; font-weight: 700; color: var(--rg-color); line-height: 1; }
+.rg-st-l { font-size: 9.5px; color: var(--text-3); margin-top: 2px; }
+.rg-bar { display: flex; align-items: center; gap: 10px; }
+.rg-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.rg-fill  { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--rg-color), color-mix(in srgb, var(--rg-color) 75%, #fff)); transition: width 1s cubic-bezier(0.22,1,0.36,1); }
+.rg-rate  { font-size: 12px; font-weight: 700; color: var(--rg-color); min-width: 36px; text-align: right; }
+
+/* ═══════════════════════════════════════════════
+   CLUSTER CARDS
+═══════════════════════════════════════════════ */
+.cl-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 13px; }
+
+.cl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  position: relative; overflow: hidden;
+  box-shadow: var(--sh-xs);
+  animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1) 0.28s both;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.cl-card:hover { transform: translateY(-2px); box-shadow: var(--sh-sm); }
+
+.cl-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--cl-color, var(--ubl));
+  border-radius: var(--r-md) var(--r-md) 0 0;
+}
+
+.cl-name { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; color: var(--text-4); margin-bottom: 5px; }
+.cl-num  { font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 2px; }
+.cl-sub  { font-size: 10.5px; color: var(--text-4); margin-bottom: 12px; }
+.cl-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.cl-st { background: var(--bg); border-radius: 6px; padding: 6px 8px; }
+.cl-st-v { font-size: 13px; font-weight: 700; color: var(--cl-color, var(--ubl)); }
+.cl-st-l { font-size: 9px; color: var(--text-4); margin-top: 1px; }
+
+/* ═══════════════════════════════════════════════
+   CHART CARDS
+═══════════════════════════════════════════════ */
+.g2   { display: grid; grid-template-columns: 1.65fr 1fr; gap: 13px; margin-bottom: 13px; }
+.g3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; margin-bottom: 13px; }
+.g2eq { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-bottom: 13px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--sh-sm);
+  animation: slideUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.28s both;
+  transition: box-shadow 0.2s;
+}
+.card:hover { box-shadow: var(--sh-md); }
+
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+.card-title { font-family: 'Sora', sans-serif; font-size: 13.5px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.card-sub   { font-size: 11px; color: var(--text-4); margin-top: 3px; }
+.card-pill  {
+  font-size: 11px; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px;
+  background: var(--ubl-tint); color: var(--ubl);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   TABLES
+═══════════════════════════════════════════════ */
+.tbl { width: 100%; border-collapse: collapse; }
+
+.tbl thead th {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.1px;
+  color: var(--text-4);
+  padding: 0 12px 11px;
+  border-bottom: 1px solid var(--border);
+  text-align: left; white-space: nowrap;
+}
+.tbl tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px; color: var(--text-2);
+  vertical-align: middle;
+}
+.tbl tbody tr:last-child td { border-bottom: none; }
+.tbl tbody tr:hover td      { background: var(--bg); }
+
+.td-primary { font-weight: 600; color: var(--text) !important; }
+.td-primary span {
+  display: block; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  max-width: 210px;
+}
+
+/* Progress bar in table */
+.prog { display: flex; align-items: center; gap: 8px; }
+.prog-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 48px; }
+.prog-fill  { height: 100%; border-radius: 3px; }
+.prog-pct   { font-size: 11px; font-weight: 700; min-width: 30px; text-align: right; }
+
+/* Grade pill */
+.g-pill {
+  display: inline-block; padding: 2px 9px;
+  border-radius: 20px; font-size: 11px; font-weight: 700;
+  background: var(--ubl-tint); color: var(--ubl);
+}
+
+/* Category / module tags */
+.cat-tag {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 6px; font-size: 10.5px; font-weight: 600;
+  background: var(--ubl-tint); color: var(--ubl);
+}
+.mod-tag {
+  display: inline-block; padding: 2px 7px;
+  border-radius: 5px; font-size: 10px;
+  background: var(--bg-alt); color: var(--text-3);
+  margin: 1px 2px 1px 0;
+}
+.na-tag { font-size: 11px; color: var(--text-4); font-style: italic; }
+
+/* ═══════════════════════════════════════════════
+   HISTORY CHIPS
+═══════════════════════════════════════════════ */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.chip {
+  padding: 4px 13px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  background: var(--ubl-tint); color: var(--ubl);
+  border: 1px solid var(--ubl-tint);
+  cursor: pointer; transition: all 0.15s;
+}
+.chip:hover, .chip.on { background: var(--ubl); color: #fff; border-color: var(--ubl); box-shadow: 0 2px 8px rgba(1,117,192,0.3); }
+
+/* ═══════════════════════════════════════════════
+   PRINT
+═══════════════════════════════════════════════ */
+@media print {
+  body::before { display: none; }
+  .topbar, .filter-bar, .tb-btn, .empty-cta { display: none !important; }
+  body { background: #fff !important; }
+  .card, .kpi, .cl-card, .bk-card, .rg-card { box-shadow: none !important; border: 1px solid #e0e0e0 !important; break-inside: avoid; }
+  .main { padding: 12px !important; }
+  .kpi-strip { grid-template-columns: repeat(5,1fr) !important; }
+}
+
+/* ═══════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width:1200px) {
+  .kpi-strip { grid-template-columns: repeat(3,1fr); }
+  .g2, .g3, .bk-grid, .rg-row { grid-template-columns: 1fr; }
+}
+@media (max-width:768px) {
+  .topbar, .filter-bar { padding: 0 16px; }
+  .main { padding: 16px; }
+  .kpi-strip { grid-template-columns: 1fr 1fr; }
+  .info-row, .g2eq { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════
+   PROGRAM PROGRESS
+═══════════════════════════════════════════════ */
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px; }
+
+.pp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 22px;
+  box-shadow: var(--sh-sm);
+  animation: slideUp 0.45s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+.pp-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+.pp-name { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.pp-cat  { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; background: var(--ubl-tint); color: var(--ubl); }
+
+/* Big coverage ring */
+.pp-ring-wrap { display: flex; align-items: center; gap: 20px; margin-bottom: 16px; }
+.pp-ring { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
+.pp-ring svg { transform: rotate(-90deg); }
+.pp-ring-bg   { fill: none; stroke: var(--border); stroke-width: 8; }
+.pp-ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(0.22,1,0.36,1); }
+.pp-ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pp-ring-pct  { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: var(--text); line-height: 1; }
+.pp-ring-lbl  { font-size: 9px; color: var(--text4); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 1px; }
+
+.pp-summary { flex: 1; }
+.pp-summary-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pp-stat { background: var(--bg); border-radius: 8px; padding: 9px 11px; }
+.pp-stat-v { font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 800; color: var(--text); line-height: 1; }
+.pp-stat-l { font-size: 10px; color: var(--text4); margin-top: 2px; }
+.pp-stat.done  .pp-stat-v { color: var(--green); }
+.pp-stat.pend  .pp-stat-v { color: var(--amber); }
+.pp-stat.total .pp-stat-v { color: var(--ubl); }
+
+/* Phase breakdown */
+.pp-phases { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.pp-phase-row { display: flex; align-items: center; gap: 10px; }
+.pp-phase-lbl { font-size: 11.5px; font-weight: 600; color: var(--text2); min-width: 90px; }
+.pp-phase-track { flex: 1; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.pp-phase-fill  { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--ubl), var(--ubl-mid)); transition: width 1s cubic-bezier(0.22,1,0.36,1); }
+.pp-phase-pct   { font-size: 11.5px; font-weight: 700; color: var(--ubl); min-width: 38px; text-align: right; }
+.pp-phase-count { font-size: 10.5px; color: var(--text4); min-width: 60px; text-align: right; }
+
+/* MoM comparison */
+.pp-mom { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding: 8px 12px; background: var(--bg); border-radius: 8px; font-size: 12px; }
+.pp-mom-arrow { font-size: 14px; }
+.pp-mom-text { color: var(--text2); }
+.pp-mom-val { font-weight: 700; }
+
+/* Pending list toggle */
+.pp-pending-toggle {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--ubl);
+  cursor: pointer; padding: 7px 0;
+  border-top: 1px solid var(--border);
+  user-select: none;
+}
+.pp-pending-toggle:hover { color: var(--ubl-dark); }
+.pp-pending-list { display: none; margin-top: 10px; max-height: 240px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); }
+.pp-pending-list table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pp-pending-list th { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text4); padding: 7px 10px; border-bottom: 1px solid var(--border); background: var(--bg); text-align: left; }
+.pp-pending-list td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text2); }
+.pp-pending-list tr:last-child td { border-bottom: none; }
+.pp-no-hc { text-align: center; padding: 20px; color: var(--text4); font-size: 12.5px; background: var(--bg); border-radius: 8px; border: 1px dashed var(--border2); }
+
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-left">
+<!-- ══ TOPBAR ══════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="tb-left">
     <a class="logo-wrap" href="#">
-      <div class="logo-box">UBL</div>
-      <div class="logo-text">
-        <span class="logo-main">L&D Center</span>
-        <span class="logo-sub">United Bank Limited</span>
+      <div class="logo-emblem">UBL</div>
+      <div class="logo-text-wrap">
+        <span class="logo-name">L&amp;D Center</span>
+        <span class="logo-tagline">United Bank Limited</span>
       </div>
     </a>
-    <div class="topbar-divider"></div>
-    <span class="topbar-title">Executive Dashboard</span>
+    <div class="tb-sep"></div>
+    <span class="tb-page-title">Executive Dashboard</span>
   </div>
-  <div class="topbar-right">
-    <div class="data-status" id="dataStatus">
-      <div class="status-dot no-data" id="statusDot"></div>
+  <div class="tb-right">
+    <div class="live-chip">
+      <div class="live-dot off" id="statusDot"></div>
       <span id="statusText">No data loaded</span>
     </div>
-    <button class="btn-outline" onclick="window.print()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    <button class="tb-btn tb-btn-ghost" onclick="window.print()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Print / PDF
     </button>
-    <a href="admin.html" class="btn-solid">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <a href="admin.html" class="tb-btn tb-btn-solid">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
       Admin Panel
     </a>
   </div>
-</div>
+</header>
 
-<!-- FILTER BAR -->
+<!-- ══ FILTER BAR ══════════════════════════════════════ -->
 <div class="filter-bar">
-  <div class="filter-group">
-    <span class="filter-label">Period</span>
-    <div class="toggle-group" id="viewToggle">
-      <button class="toggle-btn active" data-view="month" onclick="setView('month',this)">Monthly</button>
-      <button class="toggle-btn" data-view="quarter" onclick="setView('quarter',this)">Quarterly</button>
+
+  <div class="fl-group">
+    <span class="fl-label">Period</span>
+    <div class="seg-group" id="viewToggle">
+      <button class="seg-btn active" data-view="month"   onclick="setView('month',this)">Monthly</button>
+      <button class="seg-btn"        data-view="quarter" onclick="setView('quarter',this)">Quarterly</button>
     </div>
   </div>
-  <div class="filter-group" id="monthGroup">
-    <span class="filter-label">Month</span>
-    <select class="filter-select" id="monthFilter" onchange="applyFilters()">
+
+  <div class="fl-group" id="monthGroup">
+    <span class="fl-label">Month</span>
+    <select class="fl-select" id="monthFilter" onchange="applyFilters()">
       <option value="all">All Months</option>
     </select>
   </div>
-  <div class="filter-group" id="quarterGroup" style="display:none">
-    <span class="filter-label">Quarter</span>
-    <div class="toggle-group" id="quarterToggle">
-      <button class="toggle-btn active" data-q="all" onclick="setQuarter('all',this)">All</button>
-      <button class="toggle-btn" data-q="Q1" onclick="setQuarter('Q1',this)">Q1</button>
-      <button class="toggle-btn" data-q="Q2" onclick="setQuarter('Q2',this)">Q2</button>
-      <button class="toggle-btn" data-q="Q3" onclick="setQuarter('Q3',this)">Q3</button>
-      <button class="toggle-btn" data-q="Q4" onclick="setQuarter('Q4',this)">Q4</button>
+
+  <div class="fl-group" id="quarterGroup" style="display:none">
+    <span class="fl-label">Quarter</span>
+    <div class="seg-group" id="quarterToggle">
+      <button class="seg-btn active" data-q="all" onclick="setQuarter('all',this)">All</button>
+      <button class="seg-btn" data-q="Q1" onclick="setQuarter('Q1',this)">Q1</button>
+      <button class="seg-btn" data-q="Q2" onclick="setQuarter('Q2',this)">Q2</button>
+      <button class="seg-btn" data-q="Q3" onclick="setQuarter('Q3',this)">Q3</button>
+      <button class="seg-btn" data-q="Q4" onclick="setQuarter('Q4',this)">Q4</button>
     </div>
   </div>
-  <!-- Banking Type — key new filter -->
-  <div class="filter-group">
-    <span class="filter-label">Banking</span>
-    <div class="toggle-group" id="bankingToggle">
-      <button class="toggle-btn active" data-bk="all"  onclick="setBanking('all',this)">All</button>
-      <button class="toggle-btn"        data-bk="ibg"  onclick="setBanking('ibg',this)">🕌 Islamic</button>
-      <button class="toggle-btn"        data-bk="conv" onclick="setBanking('conv',this)">🏦 Conventional</button>
-      <button class="toggle-btn"        data-bk="ho"   onclick="setBanking('ho',this)">🏢 Head Office</button>
+
+  <div class="fl-divider"></div>
+
+  <div class="fl-group">
+    <span class="fl-label">Banking</span>
+    <div class="seg-group" id="bankingToggle">
+      <button class="seg-btn active" data-bk="all"  onclick="setBanking('all',this)">All</button>
+      <button class="seg-btn"        data-bk="ibg"  onclick="setBanking('ibg',this)">🕌 Islamic</button>
+      <button class="seg-btn"        data-bk="conv" onclick="setBanking('conv',this)">🏦 Conventional</button>
+      <button class="seg-btn"        data-bk="ho"   onclick="setBanking('ho',this)">🏢 Head Office</button>
     </div>
   </div>
-  <div class="filter-group">
-    <span class="filter-label">Region</span>
-    <select class="filter-select" id="regionFilter" onchange="applyFilters()">
+
+  <div class="fl-divider"></div>
+
+  <div class="fl-group">
+    <span class="fl-label">Region</span>
+    <select class="fl-select" id="regionFilter" onchange="applyFilters()">
       <option value="all">All Regions</option>
     </select>
   </div>
-  <div class="filter-group">
-    <span class="filter-label">Cluster</span>
-    <select class="filter-select" id="clusterFilter" onchange="applyFilters()">
+
+  <div class="fl-group">
+    <span class="fl-label">Cluster</span>
+    <select class="fl-select" id="clusterFilter" onchange="applyFilters()">
       <option value="all">All Clusters</option>
     </select>
   </div>
-  <div class="filter-group">
-    <span class="filter-label">Category</span>
-    <select class="filter-select" id="categoryFilter" onchange="applyFilters()">
+
+  <div class="fl-group">
+    <span class="fl-label">Category</span>
+    <select class="fl-select" id="categoryFilter" onchange="applyFilters()">
       <option value="all">All Categories</option>
     </select>
   </div>
-  <div class="filter-group">
-    <span class="filter-label">Delivery</span>
-    <select class="filter-select" id="deliveryFilter" onchange="applyFilters()">
+
+  <div class="fl-group">
+    <span class="fl-label">Delivery</span>
+    <select class="fl-select" id="deliveryFilter" onchange="applyFilters()">
       <option value="all">All Modes</option>
     </select>
   </div>
-  <div class="filter-spacer"></div>
-  <div class="filter-meta" id="filterMeta">Upload data to begin</div>
+
+  <div class="fl-spacer"></div>
+  <div class="fl-meta" id="filterMeta">Upload data to begin</div>
 </div>
 
-<!-- MAIN -->
-<div class="main">
+<!-- ══ MAIN ════════════════════════════════════════════ -->
+<main class="main">
+
   <!-- EMPTY STATE -->
   <div class="empty-state" id="emptyState">
-    <div class="empty-icon">📊</div>
-    <div class="empty-title">No Training Data Loaded</div>
-    <div class="empty-sub">Upload your monthly Excel file from the Admin Panel to populate this dashboard with live training analytics.</div>
-    <a href="admin.html" class="empty-btn">
+    <div class="empty-orb">📊</div>
+    <div class="empty-h">No Training Data Loaded</div>
+    <p class="empty-p">Upload your monthly Excel file via the Admin Panel to populate this dashboard with live training analytics across all regions.</p>
+    <a href="admin.html" class="empty-cta">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
       Go to Admin Panel
     </a>
   </div>
 
-  <!-- DASHBOARD -->
+  <!-- DASHBOARD CONTENT -->
   <div id="dashContent" style="display:none">
 
-    <!-- KPIs -->
-    <div class="section-hdr">
-      <span class="section-title">Key Performance Indicators</span>
-      <span class="filter-meta" id="kpiPeriodLabel"></span>
+    <!-- ── KPIs ─────────────────────────────────────── -->
+    <div class="sec">
+      <span class="sec-title">Key Performance Indicators</span>
+      <span class="sec-note" id="kpiPeriodLabel"></span>
     </div>
-    <div class="kpi-grid">
-      <div class="kpi-card" style="--card-accent:#0175C0">
-        <div class="kpi-top"><div class="kpi-icon" style="--icon-bg:var(--ubl-light)">👥</div><span class="kpi-trend trend-flat">—</span></div>
-        <div class="kpi-val" id="kpi-enrolled">0</div>
-        <div class="kpi-label">Total Enrolled (Invited)</div>
-        <div class="kpi-sub" id="kpi1sub">Training invitations issued</div>
+    <div class="kpi-strip">
+      <div class="kpi" style="--k-color:#0175C0;--k-bg:var(--ubl-tint)">
+        <div class="kpi-head">
+          <div class="kpi-ico">👥</div>
+          <span class="kpi-badge b-flat">—</span>
+        </div>
+        <div class="kpi-num" id="kpi-enrolled">0</div>
+        <div class="kpi-lbl">Total Enrolled</div>
+        <div class="kpi-foot" id="kpi1sub">Training invitations issued</div>
       </div>
-      <div class="kpi-card" style="--card-accent:#059669">
-        <div class="kpi-top"><div class="kpi-icon" style="--icon-bg:var(--green-bg)">✅</div><span class="kpi-trend trend-flat">—</span></div>
-        <div class="kpi-val" id="kpi-attended">0</div>
-        <div class="kpi-label">Attended</div>
-        <div class="kpi-sub" id="kpi2sub">Employees who attended</div>
+      <div class="kpi" style="--k-color:#0a8f5c;--k-bg:var(--green-tint)">
+        <div class="kpi-head">
+          <div class="kpi-ico">✅</div>
+          <span class="kpi-badge b-flat">—</span>
+        </div>
+        <div class="kpi-num" id="kpi-attended">0</div>
+        <div class="kpi-lbl">Confirmed Attendance</div>
+        <div class="kpi-foot" id="kpi2sub">Employees who attended</div>
       </div>
-      <div class="kpi-card" style="--card-accent:#d97706">
-        <div class="kpi-top"><div class="kpi-icon" style="--icon-bg:var(--amber-bg)">📋</div><span class="kpi-trend trend-flat">—</span></div>
-        <div class="kpi-val" id="kpi-courses">0</div>
-        <div class="kpi-label">Trainings Conducted</div>
-        <div class="kpi-sub" id="kpi3sub">Distinct training programs</div>
+      <div class="kpi" style="--k-color:#c47500;--k-bg:var(--amber-tint)">
+        <div class="kpi-head">
+          <div class="kpi-ico">📋</div>
+          <span class="kpi-badge b-flat">—</span>
+        </div>
+        <div class="kpi-num" id="kpi-courses">0</div>
+        <div class="kpi-lbl">Programs Conducted</div>
+        <div class="kpi-foot" id="kpi3sub">Distinct training programs</div>
       </div>
-      <div class="kpi-card" style="--card-accent:#7c3aed">
-        <div class="kpi-top"><div class="kpi-icon" style="--icon-bg:#f0ebff">⏱</div><span class="kpi-trend trend-flat">—</span></div>
-        <div class="kpi-val" id="kpi-hours">0</div>
-        <div class="kpi-label">Training Hours</div>
-        <div class="kpi-sub" id="kpi4sub">Total working hours delivered</div>
+      <div class="kpi" style="--k-color:#5235a0;--k-bg:var(--ho-tint)">
+        <div class="kpi-head">
+          <div class="kpi-ico">⏱</div>
+          <span class="kpi-badge b-flat">—</span>
+        </div>
+        <div class="kpi-num" id="kpi-hours">0</div>
+        <div class="kpi-lbl">Training Hours</div>
+        <div class="kpi-foot" id="kpi4sub">Total working hours delivered</div>
       </div>
-      <div class="kpi-card" style="--card-accent:#0175C0">
-        <div class="kpi-top"><div class="kpi-icon" style="--icon-bg:var(--ubl-light)">📈</div><span class="kpi-trend trend-flat">—</span></div>
-        <div class="kpi-val" id="kpi-attrate">0%</div>
-        <div class="kpi-label">Attendance Rate</div>
-        <div class="kpi-sub" id="kpi5sub">Attended ÷ Enrolled</div>
+      <div class="kpi" style="--k-color:#0175C0;--k-bg:var(--ubl-tint)">
+        <div class="kpi-head">
+          <div class="kpi-ico">📈</div>
+          <span class="kpi-badge b-flat">—</span>
+        </div>
+        <div class="kpi-num" id="kpi-attrate">0%</div>
+        <div class="kpi-lbl">Attendance Rate</div>
+        <div class="kpi-foot" id="kpi5sub">Attended ÷ Enrolled</div>
       </div>
     </div>
+
     <div class="info-row">
-      <div class="info-chip"><div class="info-chip-icon">🪪</div><div><div class="info-chip-val" id="kpi-uniqueEmp">0</div><div class="info-chip-lbl">Unique Employees</div></div></div>
-      <div class="info-chip"><div class="info-chip-icon">📅</div><div><div class="info-chip-val" id="kpi-avgTrainings">0</div><div class="info-chip-lbl">Avg Course Enrolments per Employee</div></div></div>
-    </div>
-
-    <!-- BANKING SEGMENTS -->
-    <div class="section-hdr" style="margin-top:22px">
-      <span class="section-title">Banking Segment Breakdown</span>
-      <span style="font-size:11px;color:var(--text-dim)">Islamic Banking group = Ameen | Branch Banking group = Conventional | Others = Head Office</span>
-    </div>
-    <div class="banking-grid" id="bankingGrid"></div>
-
-    <!-- CLUSTERS -->
-    <!-- ── REGION (L&D CENTER) PERFORMANCE ── -->
-    <div class="section-hdr" style="margin-top:22px">
-      <span class="section-title">L&D Region Performance</span>
-      <span style="font-size:11px;color:var(--text-dim)">South | Central | North — Region Specific Performance</span>
-    </div>
-    <div class="region-row" id="regionRow"></div>
-
-    <div class="section-hdr" style="margin-top:22px">
-      <span class="section-title">Cluster Performance</span>
-      <span style="font-size:11px;color:var(--text-dim)">Based on employee home cluster (where they are posted) — independent of which region trained them</span>
-    </div>
-    <div class="cluster-row" id="clusterRow"></div>
-
-    <!-- ACTIVITY CHARTS -->
-    <div class="section-hdr"><span class="section-title">Training Activity</span></div>
-    <div class="charts-2col">
-      <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Monthly Enrolled vs Attended Trend</div><div class="card-sub">Each row counted — one employee in multiple courses appears multiple times</div></div></div>
-        <div><canvas id="monthlyTrendChart" height="200"></canvas></div>
+      <div class="info-chip">
+        <div class="ic-ico">🪪</div>
+        <div><div class="ic-val" id="kpi-uniqueEmp">0</div><div class="ic-lbl">Unique Employees (by Employee ID)</div></div>
       </div>
-      <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Training Category Mix</div><div class="card-sub">Distribution by category type</div></div></div>
-        <div><canvas id="categoryChart" height="200"></canvas></div>
+      <div class="info-chip">
+        <div class="ic-ico">📅</div>
+        <div><div class="ic-val" id="kpi-avgTrainings">0</div><div class="ic-lbl">Avg Programme Enrolments per Employee</div></div>
       </div>
     </div>
-    <div class="charts-3col">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Delivery Mode</div><div class="card-sub">Virtual vs In-House</div></div></div><div><canvas id="deliveryChart" height="180"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Training Type</div><div class="card-sub">Online vs Classroom</div></div></div><div><canvas id="typeChart" height="180"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Training Status</div><div class="card-sub">Planned vs Unplanned</div></div></div><div><canvas id="statusChart" height="180"></canvas></div></div>
+
+    <!-- ── BANKING SEGMENTS ──────────────────────────── -->
+    <div class="sec" style="margin-top:28px">
+      <span class="sec-title">Banking Segment Breakdown</span>
+      <span class="sec-note">IBG cluster / Islamic Banking group = Islamic &nbsp;·&nbsp; Branch Banking = Conventional &nbsp;·&nbsp; All others = Head Office</span>
+    </div>
+    <div class="bk-grid" id="bankingGrid"></div>
+
+    <!-- ── L&D REGION PERFORMANCE ────────────────────── -->
+    <div class="sec">
+      <span class="sec-title">L&amp;D Region Performance</span>
+      <span class="sec-note">South · Central · North — where training was delivered, independent of employee home cluster</span>
+    </div>
+    <div class="rg-row" id="regionRow"></div>
+
+    <!-- ── CLUSTER PERFORMANCE ───────────────────────── -->
+    <div class="sec">
+      <span class="sec-title">Cluster Performance</span>
+      <span class="sec-note">Employee home cluster — where employees are posted, not where they trained</span>
+    </div>
+    <div class="cl-row" id="clusterRow"></div>
+
+    <!-- ── TRAINING ACTIVITY CHARTS ─────────────────── -->
+    <div class="sec"><span class="sec-title">Training Activity</span></div>
+    <div class="g2">
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">Monthly Enrolled vs Attended Trend</div><div class="card-sub">One employee in multiple courses counted per course</div></div>
+        </div>
+        <canvas id="monthlyTrendChart" height="195"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="card-title">Training Category Mix</div><div class="card-sub">Distribution by category type</div></div></div>
+        <canvas id="categoryChart" height="195"></canvas>
+      </div>
+    </div>
+    <div class="g3">
+      <div class="card"><div class="card-head"><div><div class="card-title">Delivery Mode</div><div class="card-sub">Virtual vs In-House</div></div></div><canvas id="deliveryChart" height="175"></canvas></div>
+      <div class="card"><div class="card-head"><div><div class="card-title">Training Type</div><div class="card-sub">Online vs Classroom</div></div></div><canvas id="typeChart" height="175"></canvas></div>
+      <div class="card"><div class="card-head"><div><div class="card-title">Training Status</div><div class="card-sub">Planned vs Unplanned</div></div></div><canvas id="statusChart" height="175"></canvas></div>
     </div>
 
-    <!-- ATTENDANCE ANALYSIS -->
-    <div class="section-hdr"><span class="section-title">Attendance Analysis</span></div>
-    <div class="charts-2col-eq">
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Attendance by Grade</div><div class="card-sub">Enrolled vs attended (OG-4 → SEVP-II). N/A grades still counted.</div></div></div><div><canvas id="gradeChart" height="220"></canvas></div></div>
-      <div class="card"><div class="card-hdr"><div><div class="card-title">Attendance by Cluster</div><div class="card-sub">Enrolled vs attended per employee home cluster</div></div></div><div><canvas id="clusterAttChart" height="220"></canvas></div></div>
+    <!-- ── ATTENDANCE ANALYSIS ───────────────────────── -->
+    <div class="sec"><span class="sec-title">Attendance Analysis</span></div>
+    <div class="g2eq">
+      <div class="card"><div class="card-head"><div><div class="card-title">Attendance by Grade</div><div class="card-sub">Enrolled vs attended · OG-4 through SEVP-II</div></div></div><canvas id="gradeChart" height="215"></canvas></div>
+      <div class="card"><div class="card-head"><div><div class="card-title">Attendance by Cluster</div><div class="card-sub">Enrolled vs attended per employee home cluster</div></div></div><canvas id="clusterAttChart" height="215"></canvas></div>
     </div>
 
-    <!-- COURSE TABLE -->
-    <div class="section-hdr"><span class="section-title">Course & Module Analytics</span></div>
+    <!-- ── COURSE TABLE ──────────────────────────────── -->
+    <div class="sec"><span class="sec-title">Course &amp; Module Analytics</span></div>
     <div class="card" style="margin-bottom:13px">
-      <div class="card-hdr">
-        <div><div class="card-title">Course-wise Breakdown</div><div class="card-sub">Course Title = primary program. Modules = sub-components within that course. One employee may be enrolled in multiple courses.</div></div>
-        <span class="card-badge" id="courseBadge">All Courses</span>
+      <div class="card-head">
+        <div><div class="card-title">Course-wise Breakdown</div><div class="card-sub">Course Title = primary programme · Modules = sub-components · One employee may appear in multiple courses</div></div>
+        <span class="card-pill" id="courseBadge">All Courses</span>
       </div>
       <div style="overflow-x:auto">
-        <table class="att-table">
-          <thead><tr><th>Course Title</th><th>Modules</th><th>Category</th><th>Delivery</th><th>Enrolled</th><th>Attended</th><th>Attendance Rate</th><th>Duration</th></tr></thead>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th>Course Title</th><th>Modules</th><th>Category</th>
+              <th>Delivery</th><th>Enrolled</th><th>Attended</th>
+              <th>Attendance Rate</th><th>Duration</th>
+            </tr>
+          </thead>
           <tbody id="courseTableBody"></tbody>
         </table>
       </div>
     </div>
 
-    <!-- GRADE + HISTORY -->
-    <div class="charts-2col-eq" style="margin-bottom:13px">
+    <!-- ── GRADE TABLE + HISTORY ─────────────────────── -->
+    <div class="g2eq" style="margin-bottom:13px">
       <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Grade-wise Participation</div><div class="card-sub">Unique employees counted once per grade regardless of how many courses they attended</div></div></div>
-        <table class="grade-table">
+        <div class="card-head"><div><div class="card-title">Grade-wise Participation</div><div class="card-sub">Unique employees per grade regardless of course count</div></div></div>
+        <table class="tbl">
           <thead><tr><th>Grade</th><th>Records</th><th>Attended</th><th>Unique Emp.</th><th>Rate</th></tr></thead>
           <tbody id="gradeTableBody"></tbody>
         </table>
       </div>
       <div class="card">
-        <div class="card-hdr"><div><div class="card-title">Data Repository</div><div class="card-sub">Click any month chip to filter the dashboard to that period</div></div></div>
-        <div class="history-chips" id="historyChips"></div>
+        <div class="card-head"><div><div class="card-title">Data Repository</div><div class="card-sub">Click a month to filter the entire dashboard to that period</div></div></div>
+        <div class="chips" id="historyChips"></div>
       </div>
     </div>
 
+
+    <!-- ── PROGRAM PROGRESS ─────────────────────────── -->
+    <div class="sec" id="progSec" style="display:none">
+      <span class="sec-title">Programme Coverage Progress</span>
+      <span class="sec-note">Cross-referenced against active headcount · Resigned employees excluded automatically</span>
+    </div>
+    <div id="progProgressGrid" style="display:none;margin-bottom:13px"></div>
+
   </div><!-- /dashContent -->
-</div>
+</main>
 
 <script>
 // ════════════════════════════════════════════════════════
@@ -553,13 +1120,13 @@ function renderHistoryChips() {
   const months = [...new Set(allData.map(r=>r._month).filter(Boolean))].sort();
   const c = document.getElementById('historyChips');
   c.innerHTML = months.length
-    ? months.map(m=>`<span class="month-chip" onclick="jumpToMonth('${m}')">${m}</span>`).join('')
+    ? months.map(m=>`<span class="chip" onclick="jumpToMonth('${m}')">${m}</span>`).join('')
     : '<span style="color:var(--text-dim);font-size:12px">No monthly data yet.</span>';
 }
 
 function jumpToMonth(m) {
   currentView='month'; currentMonth=m;
-  document.querySelectorAll('#viewToggle .toggle-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='month'));
+  document.querySelectorAll('#viewToggle .seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='month'));
   document.getElementById('monthGroup').style.display='';
   document.getElementById('quarterGroup').style.display='none';
   document.getElementById('monthFilter').value=m;
@@ -571,7 +1138,7 @@ function jumpToMonth(m) {
 // ════════════════════════════════════════════════════════
 function setView(v,el) {
   currentView=v;
-  document.querySelectorAll('#viewToggle .toggle-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#viewToggle .seg-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('monthGroup').style.display   = v==='month'   ?'':'none';
   document.getElementById('quarterGroup').style.display = v==='quarter' ?'':'none';
@@ -579,14 +1146,14 @@ function setView(v,el) {
 }
 function setQuarter(q,el) {
   currentQuarter=q;
-  document.querySelectorAll('#quarterToggle .toggle-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#quarterToggle .seg-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
   applyFilters();
 }
 function setBanking(bk,el) {
   currentBanking=bk;
-  document.querySelectorAll('#bankingToggle .toggle-btn').forEach(b=>b.classList.remove('active','ibg-active','conv-active','ho-active'));
-  el.classList.add({all:'active',ibg:'ibg-active',conv:'conv-active',ho:'ho-active'}[bk]||'active');
+  document.querySelectorAll('#bankingToggle .seg-btn').forEach(b=>b.classList.remove('active','ibg-on','conv-on','ho-on'));
+  el.classList.add({all:'active',ibg:'ibg-on',conv:'conv-on',ho:'ho-on'}[bk]||'active');
   applyFilters();
 }
 
@@ -615,6 +1182,7 @@ function applyFilters() {
 
   renderKPIs(); renderBankingCards(); renderRegions(); renderClusters();
   renderCharts(); renderCourseTable(); renderGradeTable();
+  renderProgramProgress();
 }
 
 function buildLabel() {
@@ -670,16 +1238,16 @@ function renderBankingCards() {
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const hours    = d.reduce((s,r)=>s+(parseFloat(r['Working Hours'])||0),0);
     return `<div class="banking-card ${seg}">
-      <div class="bk-label">${BK_ICONS[seg]} ${BK_LABELS[seg]}</div>
-      <div class="bk-val">${enrolled.toLocaleString()}</div>
+      <div class="bk-eyebrow">${BK_ICONS[seg]} ${BK_LABELS[seg]}</div>
+      <div class="bk-num">${enrolled.toLocaleString()}</div>
       <div class="bk-sub">${unique.toLocaleString()} unique employees · ${courses} courses</div>
       <div class="bk-stats">
-        <div class="bk-stat"><div class="bk-stat-val">${attended.toLocaleString()}</div><div class="bk-stat-lbl">Attended</div></div>
-        <div class="bk-stat"><div class="bk-stat-val">${rate}%</div><div class="bk-stat-lbl">Att. Rate</div></div>
-        <div class="bk-stat"><div class="bk-stat-val">${Math.round(hours).toLocaleString()}</div><div class="bk-stat-lbl">Hours</div></div>
-        <div class="bk-stat"><div class="bk-stat-val">${unique.toLocaleString()}</div><div class="bk-stat-lbl">Unique Emp.</div></div>
-        <div class="bk-stat"><div class="bk-stat-val">${courses}</div><div class="bk-stat-lbl">Courses</div></div>
-        <div class="bk-stat"><div class="bk-stat-val">${d.length.toLocaleString()}</div><div class="bk-stat-lbl">Records</div></div>
+        <div class="bk-st"><div class="bk-st-v">${attended.toLocaleString()}</div><div class="bk-st-l">Attended</div></div>
+        <div class="bk-st"><div class="bk-st-v">${rate}%</div><div class="bk-st-l">Att. Rate</div></div>
+        <div class="bk-st"><div class="bk-st-v">${Math.round(hours).toLocaleString()}</div><div class="bk-st-l">Hours</div></div>
+        <div class="bk-st"><div class="bk-st-v">${unique.toLocaleString()}</div><div class="bk-st-l">Unique Emp.</div></div>
+        <div class="bk-st"><div class="bk-st-v">${courses}</div><div class="bk-st-l">Courses</div></div>
+        <div class="bk-st"><div class="bk-st-v">${d.length.toLocaleString()}</div><div class="bk-st-l">Records</div></div>
       </div>
     </div>`;
   }).join('');
@@ -736,21 +1304,20 @@ function renderRegions() {
     const color = REGION_COLORS[region] || '#0175C0';
     const icon  = REGION_ICONS[region]  || '📍';
 
-    return `<div class="region-card" style="--r-color:${color}">
-      <div class="region-top-bar"></div>
-      <div class="region-icon">${icon}</div>
-      <div class="region-label">L&D Center — ${region} Region</div>
-      <div class="region-val">${enrolled.toLocaleString()}</div>
-      <div class="region-sub">${uniqueEmps.toLocaleString()} unique employees · from ${clustersServed} cluster${clustersServed!==1?'s':''}</div>
-      <div class="region-stats">
-        <div class="r-stat"><div class="r-stat-val">${attended.toLocaleString()}</div><div class="r-stat-lbl">Attended</div></div>
-        <div class="r-stat"><div class="r-stat-val">${programs}</div><div class="r-stat-lbl">Programs</div></div>
-        <div class="r-stat"><div class="r-stat-val">${Math.round(hours).toLocaleString()}</div><div class="r-stat-lbl">Hours</div></div>
-        <div class="r-stat"><div class="r-stat-val">${clustersServed}</div><div class="r-stat-lbl">Clusters</div></div>
+    return `<div class="rg-card" style="--rg-color:${color}" data-initial="${region[0]}">
+      <div style="display:none">${icon}</div>
+      <div class="rg-eyebrow">L&D Center — ${region} Region</div>
+      <div class="rg-num">${enrolled.toLocaleString()}</div>
+      <div class="rg-sub">${uniqueEmps.toLocaleString()} unique employees · from ${clustersServed} cluster${clustersServed!==1?'s':''}</div>
+      <div class="rg-stats">
+        <div class="rg-st"><div class="rg-st-v">${attended.toLocaleString()}</div><div class="rg-st-l">Attended</div></div>
+        <div class="rg-st"><div class="rg-st-v">${programs}</div><div class="rg-st-l">Programs</div></div>
+        <div class="rg-st"><div class="rg-st-v">${Math.round(hours).toLocaleString()}</div><div class="rg-st-l">Hours</div></div>
+        <div class="rg-st"><div class="rg-st-v">${clustersServed}</div><div class="rg-st-l">Clusters</div></div>
       </div>
-      <div class="region-bar">
-        <div class="region-bar-track"><div class="region-bar-fill" style="width:${rate}%"></div></div>
-        <span class="region-rate-lbl">${rate}%</span>
+      <div class="rg-bar">
+        <div class="rg-track"><div class="rg-fill" style="width:${rate}%"></div></div>
+        <span class="rg-rate">${rate}%</span>
       </div>
     </div>`;
   }).join('');
@@ -776,17 +1343,17 @@ function renderClusters() {
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const color    = colors[i%colors.length];
     const display  = cleanCluster(raw); // RULE 1
-    return `<div class="cluster-card" style="--c-color:${color}">
-      <div class="cluster-accent"></div>
+    return `<div class="cl-card" style="--cl-color:${color}">
+      <div style="display:none"></div>
       <div style="padding-left:8px">
-        <div class="cluster-name">${display}</div>
-        <div class="cluster-val">${enrolled.toLocaleString()}</div>
-        <div class="cluster-sub">${unique.toLocaleString()} unique employees</div>
-        <div class="cluster-stats">
-          <div class="c-stat"><div class="c-stat-val" style="color:${color}">${attended.toLocaleString()}</div><div class="c-stat-lbl">Attended</div></div>
-          <div class="c-stat"><div class="c-stat-val" style="color:${color}">${rate}%</div><div class="c-stat-lbl">Rate</div></div>
-          <div class="c-stat"><div class="c-stat-val" style="color:${color}">${courses}</div><div class="c-stat-lbl">Courses</div></div>
-          <div class="c-stat"><div class="c-stat-val" style="color:${color}">${d.length.toLocaleString()}</div><div class="c-stat-lbl">Records</div></div>
+        <div class="cl-name">${display}</div>
+        <div class="cl-num">${enrolled.toLocaleString()}</div>
+        <div class="cl-sub">${unique.toLocaleString()} unique employees</div>
+        <div class="cl-stats">
+          <div class="cl-st"><div class="cl-st-v" style="color:${color}">${attended.toLocaleString()}</div><div class="cl-st-l">Attended</div></div>
+          <div class="cl-st"><div class="cl-st-v" style="color:${color}">${rate}%</div><div class="cl-st-l">Rate</div></div>
+          <div class="cl-st"><div class="cl-st-v" style="color:${color}">${courses}</div><div class="cl-st-l">Courses</div></div>
+          <div class="cl-st"><div class="cl-st-v" style="color:${color}">${d.length.toLocaleString()}</div><div class="cl-st-l">Records</div></div>
         </div>
       </div>
     </div>`;
@@ -796,11 +1363,18 @@ function renderClusters() {
 // ════════════════════════════════════════════════════════
 // CHARTS
 // ════════════════════════════════════════════════════════
-const UBL='#0175C0',BL='rgba(1,117,192,0.15)',GREEN='#059669',AMBER='#d97706',PURPLE='#7c3aed',RED='#dc2626';
-const PALETTE=[UBL,GREEN,AMBER,PURPLE,RED,'#0891b2','#be185d','#b45309','#065f46','#1e3a5f'];
-const TTP={backgroundColor:'#0d1f2d',titleColor:'#fff',bodyColor:'#94a3b8',padding:10,cornerRadius:8,titleFont:{family:'Plus Jakarta Sans',weight:'600'},bodyFont:{family:'Plus Jakarta Sans'}};
-const AX={grid:{color:'rgba(0,0,0,0.04)'},border:{display:false},ticks:{font:{family:'Plus Jakarta Sans',size:11},color:'#5a7389'}};
-const LEG={labels:{font:{family:'Plus Jakarta Sans',size:11},color:'#5a7389',boxWidth:10,boxHeight:10,padding:9}};
+const UBL='#0175C0', BL='rgba(1,117,192,0.12)', GREEN='#0a8f5c', AMBER='#c47500',
+      PURPLE='#5235a0', RED='#d03030', TEAL='#0891b2', ROSE='#be185d';
+const PALETTE=[UBL,GREEN,AMBER,PURPLE,RED,TEAL,ROSE,'#b45309','#065f46','#1e3a5f'];
+const TTP={backgroundColor:'#0c1a27',titleColor:'#fff',bodyColor:'#aabccc',
+           padding:12,cornerRadius:10,
+           titleFont:{family:'Sora',weight:'700',size:12},
+           bodyFont:{family:'Inter',size:12},
+           borderColor:'rgba(255,255,255,0.07)',borderWidth:1};
+const AX={grid:{color:'rgba(1,45,82,0.05)'},border:{display:false},
+          ticks:{font:{family:'Inter',size:11},color:'#aabccc'}};
+const LEG={labels:{font:{family:'Inter',size:11},color:'#7a90a4',
+           boxWidth:10,boxHeight:10,padding:10}};
 
 function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 
@@ -929,7 +1503,7 @@ function renderCourseTable(){
   document.getElementById('courseBadge').textContent=`Top ${rows.length} of ${courses.length} courses`;
   document.getElementById('courseTableBody').innerHTML=rows.map(r=>`
     <tr>
-      <td class="td-name"><span title="${r.course}">${r.course}</span></td>
+      <td class="td-primary"><span title="${r.course}">${r.course}</span></td>
       <td style="max-width:180px">
         ${!r.mods.length?`<span class="na-pill">—</span>`:
           r.mods.map(m=>m.toLowerCase()==='n/a'?`<span class="na-pill">N/A</span>`:`<span class="mod-tag">${m}</span>`).join('')}
@@ -939,9 +1513,9 @@ function renderCourseTable(){
       <td><strong>${r.enrolled.toLocaleString()}</strong></td>
       <td>${r.attended.toLocaleString()}</td>
       <td>
-        <div class="att-bar-wrap">
-          <div class="att-bar-track"><div class="att-bar-fill" style="width:${r.rate}%;background:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'}"></div></div>
-          <span class="att-pct" style="color:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'}">${r.rate}%</span>
+        <div class="prog">
+          <div class="prog-track"><div class="prog-fill" style="width:${r.rate}%;background:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'}"></div></div>
+          <span class="prog-pct" style="color:${r.rate>=80?'var(--green)':r.rate>=60?'var(--amber)':'var(--red)'}">${r.rate}%</span>
         </div>
       </td>
       <td>${r.dur.toLowerCase()==='n/a'?`<span class="na-pill">N/A</span>`:r.dur}</td>
@@ -965,16 +1539,16 @@ function renderGradeTable(){
     // Unique employees for this grade (RULE 3 — N/A on other fields doesn't exclude them)
     const unique   = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
-    const gradeDisplay = g.toLowerCase()==='n/a' ? `<span class="na-pill">N/A</span>` : `<span class="grade-pill">${g}</span>`;
+    const gradeDisplay = g.toLowerCase()==='n/a' ? `<span class="na-pill">N/A</span>` : `<span class="g-pill">${g}</span>`;
     return `<tr>
       <td>${gradeDisplay}</td>
       <td><strong>${enrolled.toLocaleString()}</strong></td>
       <td>${attended.toLocaleString()}</td>
       <td>${unique.toLocaleString()}</td>
       <td>
-        <div class="att-bar-wrap">
-          <div class="att-bar-track" style="min-width:40px"><div class="att-bar-fill" style="width:${rate}%;background:${rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'}"></div></div>
-          <span class="att-pct" style="color:${rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'};font-size:11px">${rate}%</span>
+        <div class="prog">
+          <div class="prog-track" style="min-width:40px"><div class="prog-fill" style="width:${rate}%;background:${rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'}"></div></div>
+          <span class="prog-pct" style="color:${rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'};font-size:11px">${rate}%</span>
         </div>
       </td>
     </tr>`;
@@ -1006,11 +1580,274 @@ function animCount(id,target){
   const t=setInterval(()=>{cur=Math.min(cur+step,target);el.textContent=Math.floor(cur).toLocaleString();if(cur>=target)clearInterval(t);},16);
 }
 
+
+// ════════════════════════════════════════════════════════
+// PROGRAM PROGRESS — cross-references headcount vs training
+// ════════════════════════════════════════════════════════
+
+function renderProgramProgress() {
+  const programs = getPrograms();
+  const hc = getActiveHeadcount();
+  const resigned = getResignedIds();
+  const sec = document.getElementById('progSec');
+  const grid = document.getElementById('progProgressGrid');
+
+  if (!programs.length) {
+    sec.style.display = 'none';
+    grid.style.display = 'none';
+    return;
+  }
+
+  sec.style.display = 'flex';
+  grid.style.display = 'block';
+  grid.className = 'pp-grid';
+
+  grid.innerHTML = programs.map((prog, pi) => buildProgCard(prog, hc, resigned, pi)).join('');
+
+  // Animate rings after render
+  setTimeout(() => {
+    document.querySelectorAll('.pp-ring-fill').forEach(el => {
+      const target = parseFloat(el.dataset.target || 0);
+      const r = 37;
+      const circ = 2 * Math.PI * r;
+      const offset = circ - (target / 100) * circ;
+      el.style.strokeDasharray = circ;
+      el.style.strokeDashoffset = offset;
+    });
+    document.querySelectorAll('.pp-phase-fill').forEach(el => {
+      el.style.width = (el.dataset.width || '0') + '%';
+    });
+  }, 80);
+}
+
+function buildProgCard(prog, hc, resigned, idx) {
+  // Step 1: determine target audience from headcount
+  // If no headcount, show warning
+  if (!hc || !hc.rows || !hc.rows.length) {
+    return `<div class="pp-card" style="animation-delay:${idx * 0.07}s">
+      <div class="pp-head">
+        <div><div class="pp-name">${prog.name}</div></div>
+        <span class="pp-cat">${prog.category}</span>
+      </div>
+      <div class="pp-no-hc">📋 No headcount data uploaded yet.<br>
+        <span style="font-size:11px;color:var(--text4)">Upload headcount from Admin Panel → Headcount tab to enable coverage tracking.</span>
+      </div>
+    </div>`;
+  }
+
+  // Step 2: filter headcount to target audience (exclude resigned)
+  const targetEmps = hc.rows.filter(emp => {
+    const empId = norm(emp['Employee No.']);
+    if (!empId || resigned.has(empId)) return false;
+    const grpMatch = !prog.groups.length ||
+      prog.groups.some(g => norm(emp['Group']).toLowerCase() === g.toLowerCase());
+    const titleMatch = !prog.titles.length ||
+      prog.titles.some(t => norm(emp['Functional Title']).toLowerCase() === t.toLowerCase());
+    return grpMatch && titleMatch;
+  });
+
+  const targetIds = new Set(targetEmps.map(e => norm(e['Employee No.'])).filter(Boolean));
+  const targetCount = targetIds.size;
+
+  // Step 3: cross-reference with training data
+  // Filter training data by this program's category
+  const progTraining = filteredData.filter(r => {
+    const cat = norm(r['Category']).toLowerCase();
+    return cat === prog.category.toLowerCase();
+  });
+
+  // Phase logic: if phases defined, detect from Course Title
+  let phaseData = [];
+  if (prog.phases.length) {
+    phaseData = prog.phases.map((phase, phIdx) => {
+      // Find rows where Course Title contains this phase text
+      const phaseRows = progTraining.filter(r =>
+        norm(r['Course Title']).toLowerCase().includes(phase.toLowerCase()) && isAttended(r)
+      );
+      const completedIds = new Set(
+        phaseRows.map(r => norm(r['Employee No.'])).filter(id => id && targetIds.has(id))
+      );
+      return { phase, completed: completedIds.size, ids: completedIds };
+    });
+
+    // Determine highest phase completed per employee (sequential logic)
+    // An employee in Phase II implies they also did Phase I
+    phaseData.forEach((pd, i) => {
+      if (i > 0) {
+        // Add all Phase II completers to Phase I as well
+        phaseData[i].ids.forEach(id => {
+          for (let j = 0; j < i; j++) phaseData[j].ids.add(id);
+        });
+      }
+    });
+    // Recount after propagation
+    phaseData.forEach(pd => { pd.completed = pd.ids.size; });
+  }
+
+  // Overall completion = any employee who attended at least the first phase (or any course if no phases)
+  let completedIds;
+  if (prog.phases.length && phaseData.length) {
+    // Completed = attended at least Phase I
+    completedIds = phaseData[0].ids;
+  } else {
+    // No phases — standalone: attended = completed
+    const attended = progTraining.filter(r => isAttended(r));
+    completedIds = new Set(
+      attended.map(r => norm(r['Employee No.'])).filter(id => id && targetIds.has(id))
+    );
+  }
+
+  const completed = completedIds.size;
+  const pending = targetCount - completed;
+  const pct = targetCount > 0 ? Math.round((completed / targetCount) * 100) : 0;
+
+  // Ring colour based on pct
+  const ringColor = pct >= 80 ? '#0a8f5c' : pct >= 50 ? '#c47500' : '#0175C0';
+
+  // MoM comparison — compare vs previous headcount upload
+  const prevHcMonth = getPrevHcMonth();
+  let momHTML = '';
+  if (prevHcMonth) {
+    // We store completed count per program per month if available
+    const prevKey = `ubl_prog_snap_${prog.id}_${prevHcMonth.replace(/\s/g,'_')}`;
+    const prevSnap = tryParse(localStorage.getItem(prevKey));
+    if (prevSnap !== null) {
+      const diff = pct - prevSnap;
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+      const col = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text3)';
+      momHTML = `<div class="pp-mom">
+        <span class="pp-mom-arrow" style="color:${col}">${arrow}</span>
+        <span class="pp-mom-text">vs last month: </span>
+        <span class="pp-mom-val" style="color:${col}">${diff > 0 ? '+' : ''}${diff}% coverage change</span>
+      </div>`;
+    }
+    // Save current snapshot for next month comparison
+    const curKey = `ubl_prog_snap_${prog.id}_${(hc.month||'current').replace(/\s/g,'_')}`;
+    localStorage.setItem(curKey, JSON.stringify(pct));
+  }
+
+  // Pending employee list
+  const pendingEmps = targetEmps.filter(e => !completedIds.has(norm(e['Employee No.'])));
+  const pendingId = `pending-${prog.id}`;
+
+  const phaseRows = phaseData.length ? phaseData.map((pd, i) => {
+    const phasePct = targetCount > 0 ? Math.round((pd.completed / targetCount) * 100) : 0;
+    return `<div class="pp-phase-row">
+      <div class="pp-phase-lbl">${pd.phase}</div>
+      <div class="pp-phase-track"><div class="pp-phase-fill" data-width="${phasePct}" style="width:0%"></div></div>
+      <div class="pp-phase-pct">${phasePct}%</div>
+      <div class="pp-phase-count">${pd.completed} / ${targetCount}</div>
+    </div>`;
+  }).join('') : '';
+
+  const r = 37, circ = 2 * Math.PI * r;
+
+  return `<div class="pp-card" style="animation-delay:${idx * 0.07}s">
+    <div class="pp-head">
+      <div>
+        <div class="pp-name">${prog.name}</div>
+        ${prog.notes ? `<div style="font-size:11px;color:var(--text4);margin-top:2px">${prog.notes}</div>` : ''}
+      </div>
+      <span class="pp-cat">${prog.category}</span>
+    </div>
+
+    <div class="pp-ring-wrap">
+      <div class="pp-ring">
+        <svg viewBox="0 0 90 90" width="90" height="90">
+          <circle class="pp-ring-bg" cx="45" cy="45" r="${r}"/>
+          <circle class="pp-ring-fill" cx="45" cy="45" r="${r}"
+            stroke="${ringColor}"
+            stroke-dasharray="${circ}"
+            stroke-dashoffset="${circ}"
+            data-target="${pct}"/>
+        </svg>
+        <div class="pp-ring-text">
+          <div class="pp-ring-pct" style="color:${ringColor}">${pct}%</div>
+          <div class="pp-ring-lbl">Coverage</div>
+        </div>
+      </div>
+      <div class="pp-summary">
+        <div class="pp-summary-row">
+          <div class="pp-stat total"><div class="pp-stat-v">${targetCount.toLocaleString()}</div><div class="pp-stat-l">Target Audience</div></div>
+          <div class="pp-stat done"><div class="pp-stat-v">${completed.toLocaleString()}</div><div class="pp-stat-l">Completed</div></div>
+          <div class="pp-stat pend"><div class="pp-stat-v">${pending.toLocaleString()}</div><div class="pp-stat-l">Pending</div></div>
+        </div>
+        <div style="margin-top:8px;font-size:10.5px;color:var(--text4)">
+          Audience: ${prog.groups.length ? prog.groups.join(', ') : 'All groups'}
+          ${prog.titles.length ? ' · ' + prog.titles.slice(0,2).join(', ') + (prog.titles.length > 2 ? ` +${prog.titles.length - 2} more` : '') : ''}
+        </div>
+      </div>
+    </div>
+
+    ${momHTML}
+
+    ${phaseRows ? `<div class="pp-phases">${phaseRows}</div>` : ''}
+
+    ${pendingEmps.length ? `
+    <div class="pp-pending-toggle" onclick="togglePending('${pendingId}', this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      ${pendingEmps.length.toLocaleString()} employees yet to attend
+      <svg id="${pendingId}-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:auto;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="pp-pending-list" id="${pendingId}">
+      <table>
+        <thead><tr><th>Employee No.</th><th>Name</th><th>Grade</th><th>Group</th><th>Functional Title</th></tr></thead>
+        <tbody>${pendingEmps.slice(0,200).map(e => `
+          <tr>
+            <td><strong>${e['Employee No.']||'—'}</strong></td>
+            <td>${e['Employee Name']||'—'}</td>
+            <td>${e['Grade']||'—'}</td>
+            <td>${e['Group']||'—'}</td>
+            <td>${e['Functional Title']||'—'}</td>
+          </tr>`).join('')}
+          ${pendingEmps.length > 200 ? `<tr><td colspan="5" style="text-align:center;color:var(--text4);font-size:11px;padding:10px">Showing first 200 of ${pendingEmps.length} pending employees</td></tr>` : ''}
+        </tbody>
+      </table>
+    </div>` : `<div style="font-size:12px;color:var(--green);font-weight:600;padding:10px 0;border-top:1px solid var(--border)">✓ All target employees have completed this programme</div>`}
+  </div>`;
+}
+
+function togglePending(id, btn) {
+  const el = document.getElementById(id);
+  const arrow = document.getElementById(id + '-arrow');
+  const isOpen = el.style.display === 'block';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+// ── Data helpers ─────────────────────────────────────────
+function getPrograms() {
+  try { return JSON.parse(localStorage.getItem('ubl_programs') || '[]'); } catch(e) { return []; }
+}
+
+function getActiveHeadcount() {
+  try { return JSON.parse(localStorage.getItem('ubl_hc_active') || 'null'); } catch(e) { return null; }
+}
+
+function getResignedIds() {
+  try { const ids = JSON.parse(localStorage.getItem('ubl_resigned_ids') || '[]'); return new Set(ids); } catch(e) { return new Set(); }
+}
+
+function getPrevHcMonth() {
+  try {
+    const h = JSON.parse(localStorage.getItem('ubl_hc_history') || '[]');
+    return h.length >= 2 ? h[h.length - 2].month : null;
+  } catch(e) { return null; }
+}
+
+function tryParse(val) {
+  try { return val !== null ? JSON.parse(val) : null; } catch(e) { return null; }
+}
+
 window.loadDashboardData=function(rows,monthLabel){
   allData=allData.filter(r=>r._month!==monthLabel).concat(rows);
   localStorage.setItem('ubl_ld_data',JSON.stringify(allData));
   initDashboard();
 };
+</script>
+</body>
+</html>
+
 </script>
 </body>
 </html>
