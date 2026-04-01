@@ -461,6 +461,45 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 
 <script>
 // ════════════════════════════════════════════════════════
+// CHUNKED HEADCOUNT SYNC
+// Sends large headcount in 500-row batches to avoid Apps Script timeout
+// ════════════════════════════════════════════════════════
+async function syncHeadcountInChunks(label, rows, resignedIds) {
+  const CHUNK = 500;
+  const total = rows.length;
+  let sent = 0;
+  let isFirst = true;
+
+  try {
+    while (sent < total) {
+      const chunk = rows.slice(sent, sent + CHUNK);
+      const payload = {
+        action: 'uploadHeadcount',
+        monthLabel: label,
+        rows: chunk,
+        resignedIds: isFirst ? resignedIds : [],  // only send resigned on first chunk
+        chunkIndex: Math.floor(sent / CHUNK),
+        isFirstChunk: isFirst,
+        isFinalChunk: (sent + CHUNK) >= total,
+        totalRows: total
+      };
+      const result = await syncToSheets(payload);
+      if (!result || !result.success) {
+        console.warn(`HC chunk ${payload.chunkIndex} sync issue:`, result && result.error);
+      }
+      sent += CHUNK;
+      isFirst = false;
+
+      // Small delay between chunks to avoid rate limiting
+      if (sent < total) await new Promise(r => setTimeout(r, 200));
+    }
+    console.log(`Headcount synced to Sheets: ${total} rows in ${Math.ceil(total/CHUNK)} chunks`);
+  } catch(e) {
+    console.warn('Headcount Sheets sync failed (data saved locally):', e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════
 // APPS SCRIPT — pre-configured URL
 // ════════════════════════════════════════════════════════
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec';
@@ -754,41 +793,59 @@ function handleHcFile(file){
 }
 
 function computeHcDiff(newRows){
+  // Fast O(n) diff using Sets — no array spreads or .includes() on large arrays
   let prev=[];
-  try{ const h=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); if(h) prev=h.rows; }catch(e){}
-  const newIds=new Set(newRows.map(r=>norm(r['Employee No.'])).filter(Boolean));
-  const prevIds=new Set(prev.map(r=>norm(r['Employee No.'])).filter(Boolean));
-  const added=[...newIds].filter(id=>!prevIds.has(id));
-  const left=[...prevIds].filter(id=>!newIds.has(id));
-  const same=[...newIds].filter(id=>prevIds.has(id));
-  document.getElementById('diffSame').textContent=same.length.toLocaleString();
-  document.getElementById('diffAdded').textContent='+'+added.length.toLocaleString();
-  document.getElementById('diffLeft').textContent=left.length.toLocaleString();
-  document.getElementById('hcDiffWrap').style.display='block';
-  // Show resigned list
-  const resignedRows=prev.filter(r=>left.includes(norm(r['Employee No.'])));
-  if(resignedRows.length){
+  try{ const h=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); if(h&&h.rows) prev=h.rows; }catch(e){}
+
+  const newIds  = new Set(newRows.map(r=>norm(r['Employee No.'])).filter(Boolean));
+  const prevIds = new Set(prev.map(r=>norm(r['Employee No.'])).filter(Boolean));
+
+  // O(n) — iterate each Set once
+  const addedIds = new Set(); newIds.forEach(id=>{ if(!prevIds.has(id)) addedIds.add(id); });
+  const leftIds  = new Set(); prevIds.forEach(id=>{ if(!newIds.has(id))  leftIds.add(id); });
+  const sameCount = newIds.size - addedIds.size;
+
+  // Update diff UI counts
+  document.getElementById('diffSame').textContent   = sameCount.toLocaleString();
+  document.getElementById('diffAdded').textContent  = '+' + addedIds.size.toLocaleString();
+  document.getElementById('diffLeft').textContent   = leftIds.size.toLocaleString();
+  document.getElementById('hcDiffWrap').style.display = 'block';
+
+  // Build resigned list — only if there are any, and use Set lookup (O(1) per row)
+  if(leftIds.size > 0 && prev.length > 0){
     document.getElementById('resignedListWrap').style.display='block';
-    document.getElementById('resignedTableBody').innerHTML=resignedRows.map(r=>`
-      <tr>
+    // Build a lookup map for prev rows by ID for O(1) access
+    const prevMap = new Map(prev.map(r=>[norm(r['Employee No.']), r]));
+    let html = '';
+    leftIds.forEach(id=>{
+      const r = prevMap.get(id);
+      if(!r) return;
+      html += `<tr>
         <td><strong>${r['Employee No.']||'—'}</strong></td>
         <td>${r['Employee Name']||'—'}</td>
         <td>${r['Grade']||'—'}</td>
         <td>${r['Group']||'—'}</td>
         <td>${r['Functional Title']||'—'}</td>
-      </tr>`).join('');
+      </tr>`;
+    });
+    document.getElementById('resignedTableBody').innerHTML = html;
   } else {
     document.getElementById('resignedListWrap').style.display='none';
   }
-  return { added, left, same };
+
+  return { added:[...addedIds], left:[...leftIds], same:sameCount };
 }
 
-function processHeadcount(){
+async function processHeadcount(){
   const btn=document.getElementById('hcProcessBtn');
   let label=document.getElementById('hcMonthLabel').value.trim();
   if(!label) label=new Date().toLocaleString('default',{month:'long',year:'numeric'});
   if(!parsedHcRows.length){ showStatus('hcStatus','err','No Data','Parse a file first.'); return; }
-  btn.disabled=true; btn.innerHTML='⏳ Saving…';
+  btn.disabled=true; btn.innerHTML='⏳ Processing…';
+  showStatus('hcStatus','info','Saving headcount…',`Processing ${parsedHcRows.length.toLocaleString()} employees…`);
+
+  // Yield to browser so the UI updates before we do the heavy work
+  await new Promise(resolve => setTimeout(resolve, 50));
 
   const diff=computeHcDiff(parsedHcRows);
   // Store resigned IDs persistently so dashboard can exclude them
@@ -797,11 +854,52 @@ function processHeadcount(){
   diff.left.forEach(id=>resignedIds.add(id));
   // Remove from resigned if they re-joined
   diff.added.forEach(id=>resignedIds.delete(id));
-  localStorage.setItem('ubl_resigned_ids',JSON.stringify([...resignedIds]));
 
-  // Save active headcount
-  const hcRecord={ month:label, rows:parsedHcRows, uploadedAt:new Date().toISOString(), total:parsedHcRows.length, added:diff.added.length, left:diff.left.length };
-  localStorage.setItem('ubl_hc_active',JSON.stringify(hcRecord));
+  // ── CRITICAL: strip to essential fields only before localStorage ──────────
+  // Full 30k row headcount is too large for localStorage (5MB limit).
+  // We keep only the 6 fields needed for program audience matching.
+  const ESSENTIAL = ['Employee No.','Employee Name','Grade','Group','Sub Group','Functional Title'];
+  const slimRows = parsedHcRows.map(r => {
+    const slim = {};
+    ESSENTIAL.forEach(k => { slim[k] = r[k] || ''; });
+    return slim;
+  });
+
+  // Test if it fits — if not, store just Employee IDs + Group + Title (minimum needed)
+  let rowsToStore = slimRows;
+  const testSize = JSON.stringify(slimRows).length;
+  if (testSize > 4 * 1024 * 1024) { // > 4MB — trim further
+    rowsToStore = parsedHcRows.map(r => ({
+      'Employee No.': r['Employee No.'] || '',
+      'Employee Name': r['Employee Name'] || '',
+      'Grade': r['Grade'] || '',
+      'Group': r['Group'] || '',
+      'Functional Title': r['Functional Title'] || '',
+    }));
+  }
+
+  localStorage.setItem('ubl_resigned_ids', JSON.stringify([...resignedIds]));
+
+  // Save active headcount (slim version only)
+  const hcRecord = {
+    month: label,
+    rows: rowsToStore,
+    uploadedAt: new Date().toISOString(),
+    total: parsedHcRows.length,
+    added: diff.added.length,
+    left: diff.left.length
+  };
+
+  try {
+    localStorage.setItem('ubl_hc_active', JSON.stringify(hcRecord));
+  } catch(storageErr) {
+    // If still too large, store without rows (Sheets is source of truth)
+    console.warn('localStorage headcount too large, storing metadata only:', storageErr);
+    const metaOnly = { ...hcRecord, rows: [], _rowsInSheets: true };
+    localStorage.setItem('ubl_hc_active', JSON.stringify(metaOnly));
+    showStatus('hcStatus','warn','⚠ Headcount too large for local storage',
+      'Employee data saved to Google Sheets only. Dashboard will fetch from Sheets for program tracking. Local data: metadata only.');
+  }
 
   // Append to history
   let hcHistory=[]; try{ hcHistory=JSON.parse(localStorage.getItem('ubl_hc_history')||'[]'); }catch(e){}
@@ -809,9 +907,8 @@ function processHeadcount(){
   hcHistory.push({ month:label, total:parsedHcRows.length, uploadedAt:new Date().toLocaleString('en-PK'), added:diff.added.length, left:diff.left.length });
   localStorage.setItem('ubl_hc_history',JSON.stringify(hcHistory));
 
-  // Sync headcount to Sheets (store in separate sheet)
-  syncToSheets({ action:'uploadHeadcount', monthLabel:label, rows:parsedHcRows, resignedIds:[...resignedIds] })
-    .then(r => { if(r&&r.success) console.log('HC sync OK'); });
+  // Sync headcount to Sheets in chunks (30k rows would timeout in one call)
+  syncHeadcountInChunks(label, parsedHcRows, [...resignedIds]);
 
   setTimeout(()=>{
     btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save Headcount & Flag Resigned Employees';
