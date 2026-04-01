@@ -244,7 +244,7 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
     ondrop="handleTrainingDrop(event)">
     <div class="drop-icon">📂</div>
     <div class="drop-title">Drop your training Excel file here</div>
-    <div class="drop-sub">Supports .xlsx and .xls · All 19 columns including Region will be auto-mapped</div>
+    <div class="drop-sub">Supports .xlsx and .xls · All 19 columns (Region, Employee No., Course Title, Test Score, Trainer Name, Trainer Feedback, Training Venue etc.) will be auto-mapped</div>
     <label class="drop-btn">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
       Browse File
@@ -306,7 +306,7 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
     ondrop="handleHcDrop(event)">
     <div class="drop-icon">👥</div>
     <div class="drop-title">Drop your Headcount Excel file here</div>
-    <div class="drop-sub">Expected columns: Employee No., Employee Name, Group, Grade, Sub Group, Functional Title, and any others</div>
+    <div class="drop-sub">Expected columns: Employee No., Employee Name, Group, Grade, Functional Title, POP Code, Location, and any others</div>
     <label class="drop-btn">Browse File</label>
     <input type="file" id="hcFile" accept=".xlsx,.xls" onchange="handleHcFile(this.files[0])"/>
   </div>
@@ -628,22 +628,24 @@ function readExcel(file, sheetNameHint, onSuccess, onError){
 let parsedTrainingRows = [];
 
 const TRAINING_COL_MAP = {
-  'employee no':'Employee No.','employee no.':'Employee No.','emp no':'Employee No.',
+  'region':'Region',
+  'employee no':'Employee No.','employee no.':'Employee No.','emp no':'Employee No.','empno':'Employee No.',
   'employee name':'Employee Name','name':'Employee Name',
-  'functional title':'Functional Title','title':'Functional Title',
+  'functional title':'Functional Title','title':'Functional Title','designation':'Functional Title',
   'grade':'Grade','group':'Group','pop code':'POP Code',
-  'region':'Region','cluster':'Cluster',
+  'cluster':'Cluster',
   'attendance status':'Attendance Status','status':'Attendance Status',
-  'modules':'Modules','module':'Modules',
   'course title':'Course Title','course':'Course Title',
-  'delivery mode':'Delivery Mode','delivery':'Delivery Mode',
   'training type':'Training Type','type':'Training Type',
-  'training status':'Training Status',
+  'test score':'Test Score','score':'Test Score',
+  'trainer name':'Trainer Name','trainer':'Trainer Name',
+  'trainer feedback':'Trainer Feedback','feedback':'Trainer Feedback',
   'from':'From','start date':'From','to':'To','end date':'To',
-  'duration':'Duration','working hours':'Working Hours','hours':'Working Hours',
+  'duration':'Duration',
+  'training venue':'Training Venue','venue':'Training Venue','location':'Training Venue',
   'category':'Category',
 };
-const TRAINING_EXPECTED = ['Employee No.','Employee Name','Functional Title','Grade','Group','POP Code','Region','Cluster','Attendance Status','Modules','Course Title','Delivery Mode','Training Type','Training Status','From','To','Duration','Working Hours','Category'];
+const TRAINING_EXPECTED = ['Region','Employee No.','Employee Name','Functional Title','Grade','Group','POP Code','Cluster','Attendance Status','Course Title','Training Type','Test Score','Trainer Name','Trainer Feedback','From','To','Duration','Training Venue','Category'];
 
 function handleTrainingDrop(e){ e.preventDefault(); document.getElementById('trainingDrop').classList.remove('drag'); const f=e.dataTransfer.files[0]; if(f) handleTrainingFile(f); }
 
