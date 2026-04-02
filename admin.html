@@ -882,7 +882,7 @@ function handleHcFile(file){
 function computeHcDiff(newRows){
   // Fast O(n) diff using Sets — no array spreads or .includes() on large arrays
   let prev=[];
-  try{ const h=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); if(h&&h.rows) prev=h.rows; }catch(e){}
+  try{ prev=loadHcRows(); }catch(e){}
 
   const newIds  = new Set(newRows.map(r=>norm(r['Employee No.'])).filter(Boolean));
   const prevIds = new Set(prev.map(r=>norm(r['Employee No.'])).filter(Boolean));
@@ -923,6 +923,34 @@ function computeHcDiff(newRows){
   return { added:[...addedIds], left:[...leftIds], same:sameCount };
 }
 
+// ── Load headcount rows from chunked localStorage ────────────────────────
+// Chunks stored as ubl_hc_chunk_0, ubl_hc_chunk_1, ...
+// Meta in ubl_hc_active has chunkCount field
+function loadHcRows() {
+  try {
+    const meta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
+    if (!meta) return [];
+
+    // New chunked format
+    if (meta.chunkCount !== undefined) {
+      const rows = [];
+      for (let i = 0; i < meta.chunkCount; i++) {
+        const chunk = JSON.parse(localStorage.getItem(`ubl_hc_chunk_${i}`) || '[]');
+        rows.push(...chunk);
+      }
+      return rows;
+    }
+
+    // Legacy format (rows stored directly in meta)
+    if (meta.rows && meta.rows.length) return meta.rows;
+
+    return [];
+  } catch(e) {
+    console.warn('loadHcRows error:', e);
+    return [];
+  }
+}
+
 async function processHeadcount(){
   const btn=document.getElementById('hcProcessBtn');
   let label=document.getElementById('hcMonthLabel').value.trim();
@@ -942,50 +970,63 @@ async function processHeadcount(){
   // Remove from resigned if they re-joined
   diff.added.forEach(id=>resignedIds.delete(id));
 
-  // ── CRITICAL: strip to essential fields only before localStorage ──────────
-  // Full 30k row headcount is too large for localStorage (5MB limit).
-  // We keep only the 6 fields needed for program audience matching.
-  const ESSENTIAL = ['Employee No.','Employee Name','Grade','Group','Sub Group','Functional Title'];
+  // ── Strip to essential fields only ───────────────────────────────────────
+  const ESSENTIAL = ['Employee No.','Employee Name','Grade','Group','Functional Title'];
   const slimRows = parsedHcRows.map(r => {
     const slim = {};
     ESSENTIAL.forEach(k => { slim[k] = r[k] || ''; });
     return slim;
   });
 
-  // Test if it fits — if not, store just Employee IDs + Group + Title (minimum needed)
-  let rowsToStore = slimRows;
-  const testSize = JSON.stringify(slimRows).length;
-  if (testSize > 4 * 1024 * 1024) { // > 4MB — trim further
-    rowsToStore = parsedHcRows.map(r => ({
-      'Employee No.': r['Employee No.'] || '',
-      'Employee Name': r['Employee Name'] || '',
-      'Grade': r['Grade'] || '',
-      'Group': r['Group'] || '',
-      'Functional Title': r['Functional Title'] || '',
-    }));
-  }
-
   localStorage.setItem('ubl_resigned_ids', JSON.stringify([...resignedIds]));
 
-  // Save active headcount (slim version only)
+  // ── Store in chunks to bypass localStorage 5MB limit ─────────────────────
+  // 29,965 rows × ~100 bytes = ~3MB slim — split into 2000-row chunks (~600KB each)
+  const CHUNK_SIZE = 2000;
+  const chunks = [];
+  for (let i = 0; i < slimRows.length; i += CHUNK_SIZE) {
+    chunks.push(slimRows.slice(i, i + CHUNK_SIZE));
+  }
+
+  // Clear any old chunks first
+  let oldMeta = null;
+  try { oldMeta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null'); } catch(e) {}
+  if (oldMeta && oldMeta.chunkCount) {
+    for (let i = 0; i < oldMeta.chunkCount; i++) {
+      localStorage.removeItem(`ubl_hc_chunk_${i}`);
+    }
+  }
+
+  // Write each chunk
+  let savedChunks = 0;
+  let saveError = false;
+  for (let i = 0; i < chunks.length; i++) {
+    try {
+      localStorage.setItem(`ubl_hc_chunk_${i}`, JSON.stringify(chunks[i]));
+      savedChunks++;
+    } catch(e) {
+      console.warn(`Failed saving chunk ${i}:`, e.message);
+      saveError = true;
+      break;
+    }
+  }
+
+  // Write meta record (no rows — chunks hold the data)
   const hcRecord = {
     month: label,
-    rows: rowsToStore,
+    chunkCount: savedChunks,
+    totalRows: slimRows.length,
     uploadedAt: new Date().toISOString(),
     total: parsedHcRows.length,
     added: diff.added.length,
     left: diff.left.length
   };
 
-  try {
-    localStorage.setItem('ubl_hc_active', JSON.stringify(hcRecord));
-  } catch(storageErr) {
-    // If still too large, store without rows (Sheets is source of truth)
-    console.warn('localStorage headcount too large, storing metadata only:', storageErr);
-    const metaOnly = { ...hcRecord, rows: [], _rowsInSheets: true };
-    localStorage.setItem('ubl_hc_active', JSON.stringify(metaOnly));
-    showStatus('hcStatus','warn','⚠ Headcount too large for local storage',
-      'Employee data saved to Google Sheets only. Dashboard will fetch from Sheets for program tracking. Local data: metadata only.');
+  localStorage.setItem('ubl_hc_active', JSON.stringify(hcRecord));
+
+  if (saveError) {
+    showStatus('hcStatus','warn','⚠ Partial save',
+      `Only ${savedChunks * CHUNK_SIZE} of ${slimRows.length} employees saved locally. Full data synced to Google Sheets.`);
   }
 
   // Append to history
@@ -1035,7 +1076,13 @@ function deleteHcMonth(month){
   let h=[]; try{ h=JSON.parse(localStorage.getItem('ubl_hc_history')||'[]'); }catch(e){}
   localStorage.setItem('ubl_hc_history',JSON.stringify(h.filter(x=>x.month!==month)));
   let active=null; try{ active=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); }catch(e){}
-  if(active&&active.month===month) localStorage.removeItem('ubl_hc_active');
+  if(active&&active.month===month){
+    // Clear chunks
+    if(active.chunkCount){
+      for(let i=0;i<active.chunkCount;i++) localStorage.removeItem(`ubl_hc_chunk_${i}`);
+    }
+    localStorage.removeItem('ubl_hc_active');
+  }
   refreshHcSummary();
 }
 
@@ -1148,14 +1195,17 @@ function exportProgramReport(progId) {
   const prog = getPrograms().find(p => p.id === progId);
   if (!prog) return;
 
-  const hc = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
+  const hcRows = loadHcRows();
   const trainingData = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
   const resignedIds = new Set(JSON.parse(localStorage.getItem('ubl_resigned_ids') || '[]'));
+  const hcMeta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
 
-  if (!hc || !hc.rows || !hc.rows.length) {
+  if (!hcRows.length) {
     alert('No headcount data found. Please upload headcount first.');
     return;
   }
+  // Use hcRows as hc.rows
+  const hc = { rows: hcRows, month: hcMeta?.month || '' };
 
   const normStr = v => v == null ? '' : String(v).trim();
 
@@ -1386,7 +1436,20 @@ function refreshAppsScriptDisplay() {
 }
 
 function clearTrainingData(){ if(!confirm('Clear ALL training data?')) return; localStorage.removeItem('ubl_ld_data'); localStorage.removeItem('ubl_ld_meta'); syncToSheets({action:'clearAll'}); refreshTrainingRepo(); showStatus('trainingStatus','info','Cleared','All training data removed.'); }
-function clearHeadcount(){ if(!confirm('Clear ALL headcount data?')) return; localStorage.removeItem('ubl_hc_active'); localStorage.removeItem('ubl_hc_history'); localStorage.removeItem('ubl_resigned_ids'); refreshHcSummary(); }
+function clearHeadcount(){
+  if(!confirm('Clear ALL headcount data?')) return;
+  // Clear chunks
+  try {
+    const meta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
+    if (meta && meta.chunkCount) {
+      for (let i = 0; i < meta.chunkCount; i++) localStorage.removeItem(`ubl_hc_chunk_${i}`);
+    }
+  } catch(e) {}
+  localStorage.removeItem('ubl_hc_active');
+  localStorage.removeItem('ubl_hc_history');
+  localStorage.removeItem('ubl_resigned_ids');
+  refreshHcSummary();
+}
 function clearPrograms(){ if(!confirm('Clear ALL program configurations?')) return; localStorage.removeItem('ubl_programs'); refreshProgList(); }
 </script>
 </body>
