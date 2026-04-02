@@ -1887,7 +1887,26 @@ function getPrograms() {
 }
 
 function getActiveHeadcount() {
-  try { return JSON.parse(localStorage.getItem('ubl_hc_active') || 'null'); } catch(e) { return null; }
+  try {
+    const meta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
+    if (!meta) return null;
+
+    // New chunked format — reassemble rows from chunks
+    if (meta.chunkCount !== undefined) {
+      const rows = [];
+      for (let i = 0; i < meta.chunkCount; i++) {
+        const chunk = JSON.parse(localStorage.getItem(`ubl_hc_chunk_${i}`) || '[]');
+        rows.push(...chunk);
+      }
+      return { ...meta, rows };
+    }
+
+    // Legacy format (rows stored directly)
+    return meta;
+  } catch(e) {
+    console.warn('getActiveHeadcount error:', e);
+    return null;
+  }
 }
 
 function getResignedIds() {
