@@ -357,47 +357,53 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 <!-- ══ TAB 3: PROGRAM CONFIG ═════════════════════════════ -->
 <div class="page" id="tab-programs">
   <div class="page-h">Program Configuration</div>
-  <div class="page-sub">Define training programs, their target audiences (Group + Functional Title), and which Category they map to in the training data. The dashboard will track coverage progress automatically.</div>
+  <div class="page-sub">Define training programs and their target audiences. The dashboard will automatically track Islamic Banking and Conventional Banking coverage separately, show functional title breakdowns, and let you export progress reports.</div>
 
   <div class="sec">Add New Program</div>
   <div class="card">
     <div class="field-row">
       <div class="field">
-        <label class="field-lbl">Program Name</label>
+        <label class="field-lbl">Program Title</label>
         <input class="field-inp" type="text" id="progName" placeholder="e.g. Branch Development Program"/>
       </div>
       <div class="field">
-        <label class="field-lbl">Category (matches Category column in training data)</label>
+        <label class="field-lbl">Target Category <span style="font-weight:400;color:var(--text4)">(must match exactly the Category column value in your training data)</span></label>
         <input class="field-inp" type="text" id="progCategory" placeholder="e.g. Branch Development Program"/>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label class="field-lbl">Target Groups <span style="font-weight:400;color:var(--text4)">(comma-separated, e.g. Branch Banking Group)</span></label>
-        <textarea class="field-inp" id="progGroups" placeholder="Branch Banking Group&#10;Islamic Banking Group"></textarea>
+        <label class="field-lbl">Target Groups <span style="font-weight:400;color:var(--text4)">(one per line or comma-separated)</span></label>
+        <textarea class="field-inp" id="progGroups" rows="3" placeholder="Branch Banking Group&#10;Islamic Banking Group"></textarea>
       </div>
       <div class="field">
-        <label class="field-lbl">Target Functional Titles <span style="font-weight:400;color:var(--text4)">(comma-separated — leave blank for all titles in group)</span></label>
-        <textarea class="field-inp" id="progTitles" placeholder="Branch Manager&#10;Branch Operations Manager&#10;Area Manager"></textarea>
+        <label class="field-lbl">Target Functional Titles <span style="font-weight:400;color:var(--text4)">(one per line — use #N/A for employees without a title)</span></label>
+        <textarea class="field-inp" id="progTitles" rows="3" placeholder="Branch Manager&#10;Branch Operations Manager&#10;Branch Services Officer&#10;#N/A"></textarea>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label class="field-lbl">Phases <span style="font-weight:400;color:var(--text4)">(comma-separated; leave blank if no phases)</span></label>
-        <input class="field-inp" type="text" id="progPhases" placeholder="Phase I, Phase II, Phase III"/>
+        <label class="field-lbl">Phases / Courses <span style="font-weight:400;color:var(--text4)">(one per line — must match text in Course Title column. Leave blank if no phases.)</span></label>
+        <textarea class="field-inp" id="progPhases" rows="3" placeholder="BM &amp; BOM Development Program Phase I&#10;BM &amp; BOM Development Program Phase II"></textarea>
       </div>
       <div class="field">
         <label class="field-lbl">Notes / Description (optional)</label>
-        <input class="field-inp" type="text" id="progNotes" placeholder="Any relevant notes about this program"/>
+        <textarea class="field-inp" id="progNotes" rows="3" placeholder="Any notes about this program, its goals, or target completion date"></textarea>
       </div>
     </div>
-    <button onclick="addProgram()" style="padding:10px 24px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--sh-ubl);transition:all 0.2s" onmouseover="this.style.background='var(--ubl-dark)'" onmouseout="this.style.background='var(--ubl)'">
-      + Add Program
-    </button>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px">
+      <button onclick="addProgram()" style="padding:10px 24px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--sh-ubl);transition:all 0.2s" onmouseover="this.style.background='var(--ubl-dark)'" onmouseout="this.style.background='var(--ubl)'">
+        + Add Program
+      </button>
+      <span style="font-size:12px;color:var(--text3)">Islamic Banking and Conventional Banking splits are detected automatically from the Group column</span>
+    </div>
     <div class="status-box" id="progAddStatus" style="margin-top:12px;margin-bottom:0"></div>
   </div>
 
-  <div class="sec" style="margin-top:4px">Configured Programs (<span id="progCount">0</span>)</div>
+  <div class="sec" style="margin-top:4px">
+    Configured Programs (<span id="progCount">0</span>)
+    <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text3)">Use the Export button on each program to download a coverage report</span>
+  </div>
   <div class="prog-list" id="progList">
     <div style="text-align:center;padding:28px;color:var(--text4);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)" id="progListEmpty">No programs configured yet. Add your first program above.</div>
   </div>
@@ -1081,15 +1087,35 @@ function refreshProgList(){
   const empty=document.getElementById('progListEmpty');
   if(!progs.length){ container.innerHTML=''; container.appendChild(empty); empty.style.display='block'; return; }
   empty.style.display='none';
-  container.innerHTML=progs.map(p=>`
-    <div class="prog-item">
+
+  // Detect IBG groups — used to show Islamic/Conventional split indicator
+  const isIbgGroup = g => g.toLowerCase().includes('islamic');
+  const isConvGroup = g => g.toLowerCase().includes('branch banking');
+
+  container.innerHTML=progs.map(p=>{
+    const hasIbg  = p.groups.some(isIbgGroup);
+    const hasConv = p.groups.some(isConvGroup);
+    const hasBoth = hasIbg && hasConv;
+    const splitTag = hasBoth
+      ? `<span style="font-size:10px;padding:2px 8px;background:#e6f4ee;color:#0d7a50;border-radius:12px;font-weight:600;border:1px solid #a7d7bb">🕌 Islamic + 🏦 Conventional</span>`
+      : hasIbg
+        ? `<span style="font-size:10px;padding:2px 8px;background:#e6f4ee;color:#0d7a50;border-radius:12px;font-weight:600;border:1px solid #a7d7bb">🕌 Islamic Banking</span>`
+        : hasConv
+          ? `<span style="font-size:10px;padding:2px 8px;background:#fff8e6;color:#b86000;border-radius:12px;font-weight:600;border:1px solid #e8ceaa">🏦 Conventional</span>`
+          : `<span style="font-size:10px;padding:2px 8px;background:#f2effe;color:#5235a0;border-radius:12px;font-weight:600;border:1px solid #c8b8e8">🏢 Head Office</span>`;
+
+    return `<div class="prog-item">
       <div class="prog-item-head">
         <div>
           <div class="prog-item-name">${p.name}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">Added ${p.createdAt}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            ${splitTag}
+            <span style="font-size:11px;color:var(--text3)">Added ${p.createdAt}</span>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end">
           <span class="prog-item-cat">${p.category}</span>
+          <button onclick="exportProgramReport('${p.id}')" style="padding:4px 12px;background:var(--ubl-tint);color:var(--ubl);border:1px solid var(--border2);border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">⬇ Export</button>
           <button class="del-btn" onclick="deleteProgram('${p.id}')">Remove</button>
         </div>
       </div>
@@ -1099,16 +1125,190 @@ function refreshProgList(){
           <div class="prog-meta-val">${p.groups.length?p.groups.join(', '):'<span style="color:var(--text4)">All groups</span>'}</div>
         </div>
         <div class="prog-meta-item">
-          <div class="prog-meta-lbl">Functional Titles</div>
-          <div class="prog-meta-val">${p.titles.length?p.titles.join(', '):'<span style="color:var(--text4)">All titles</span>'}</div>
+          <div class="prog-meta-lbl">Functional Titles (${p.titles.length})</div>
+          <div class="prog-meta-val" style="max-height:60px;overflow-y:auto;font-size:11.5px">${p.titles.length?p.titles.map(t=>`<span style="display:inline-block;background:var(--bg2);border-radius:5px;padding:1px 7px;margin:1px;font-size:11px">${t}</span>`).join(''):'<span style="color:var(--text4)">All titles</span>'}</div>
         </div>
         <div class="prog-meta-item">
           <div class="prog-meta-lbl">Notes</div>
           <div class="prog-meta-val">${p.notes||'<span style="color:var(--text4)">—</span>'}</div>
         </div>
       </div>
-      ${p.phases.length?`<div style="margin-top:10px;font-size:10.5px;color:var(--text4);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.8px;">Phases</div><div class="prog-phases">${p.phases.map(ph=>`<span class="phase-chip">${ph}</span>`).join('')}</div>`:'<div style="margin-top:8px;font-size:11px;color:var(--text4)">No phases — standalone programme</div>'}
-    </div>`).join('');
+      ${p.phases.length
+        ? `<div style="margin-top:10px">
+            <div style="font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">Phases / Courses (${p.phases.length})</div>
+            <div class="prog-phases">${p.phases.map((ph,i)=>`<span class="phase-chip">Phase ${i+1}: ${ph}</span>`).join('')}</div>
+           </div>`
+        : '<div style="margin-top:8px;font-size:11px;color:var(--text4)">📌 No phases defined — standalone programme</div>'}
+    </div>`;
+  }).join('');
+}
+
+// ── Export program coverage report as Excel ──────────────────────────────
+function exportProgramReport(progId) {
+  const prog = getPrograms().find(p => p.id === progId);
+  if (!prog) return;
+
+  const hc = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
+  const trainingData = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
+  const resignedIds = new Set(JSON.parse(localStorage.getItem('ubl_resigned_ids') || '[]'));
+
+  if (!hc || !hc.rows || !hc.rows.length) {
+    alert('No headcount data found. Please upload headcount first.');
+    return;
+  }
+
+  const normStr = v => v == null ? '' : String(v).trim();
+
+  // Build target audience from headcount
+  const targetEmps = hc.rows.filter(emp => {
+    const id = normStr(emp['Employee No.']);
+    if (!id || resignedIds.has(id)) return false;
+    const grpOk = !prog.groups.length || prog.groups.some(g => normStr(emp['Group']).toLowerCase() === g.toLowerCase());
+    const titleOk = !prog.titles.length || prog.titles.some(t => normStr(emp['Functional Title']).toLowerCase() === t.toLowerCase());
+    return grpOk && titleOk;
+  });
+
+  // Filter training data to this program's category
+  const progTraining = trainingData.filter(r =>
+    normStr(r['Category']).toLowerCase() === prog.category.toLowerCase()
+  );
+
+  // Build attended IDs per phase
+  const phaseAttended = {};
+  if (prog.phases.length) {
+    prog.phases.forEach(phase => {
+      const rows = progTraining.filter(r =>
+        normStr(r['Course Title']).toLowerCase().includes(phase.toLowerCase()) &&
+        normStr(r['Attendance Status']).toLowerCase().includes('attend')
+      );
+      phaseAttended[phase] = new Set(rows.map(r => normStr(r['Employee No.'])).filter(Boolean));
+    });
+    // Sequential: higher phase implies earlier phases
+    prog.phases.forEach((phase, i) => {
+      if (i > 0) {
+        phaseAttended[phase].forEach(id => {
+          for (let j = 0; j < i; j++) phaseAttended[prog.phases[j]].add(id);
+        });
+      }
+    });
+  } else {
+    const attended = progTraining.filter(r => normStr(r['Attendance Status']).toLowerCase().includes('attend'));
+    phaseAttended['_all'] = new Set(attended.map(r => normStr(r['Employee No.'])).filter(Boolean));
+  }
+
+  // Determine banking type per employee
+  const getEmpBanking = emp => {
+    const grp = normStr(emp['Group']).toLowerCase();
+    if (grp.includes('islamic banking')) return 'Islamic Banking';
+    if (grp.includes('branch banking'))  return 'Conventional';
+    return 'Head Office';
+  };
+
+  // Build per-employee coverage row
+  const phaseKeys = prog.phases.length ? prog.phases : ['_all'];
+  const rows = targetEmps.map(emp => {
+    const id = normStr(emp['Employee No.']);
+    const banking = getEmpBanking(emp);
+    const row = {
+      'Employee No.'   : id,
+      'Employee Name'  : normStr(emp['Employee Name']),
+      'Grade'          : normStr(emp['Grade']),
+      'Group'          : normStr(emp['Group']),
+      'Functional Title': normStr(emp['Functional Title']),
+      'Banking Segment': banking,
+    };
+    phaseKeys.forEach(ph => {
+      const label = ph === '_all' ? 'Completed' : ph;
+      row[label] = phaseAttended[ph]?.has(id) ? 'Yes' : 'No';
+    });
+    // Last phase = overall status
+    const lastPhase = phaseKeys[phaseKeys.length - 1];
+    row['Overall Status'] = phaseAttended[lastPhase]?.has(id) ? 'Completed' : 'Pending';
+    return row;
+  });
+
+  // Sort: completed first, then by banking, then by grade
+  const gradeOrder = ['OG-4','OG-3','OG-2','OG-1','AVP','VP','SVP','EVP','SEVP','SEVP-II'];
+  rows.sort((a,b) => {
+    if (a['Overall Status'] !== b['Overall Status']) return a['Overall Status'] === 'Completed' ? -1 : 1;
+    if (a['Banking Segment'] !== b['Banking Segment']) return a['Banking Segment'].localeCompare(b['Banking Segment']);
+    return (gradeOrder.indexOf(a['Grade']) || 99) - (gradeOrder.indexOf(b['Grade']) || 99);
+  });
+
+  // Build summary sheet
+  const totalTarget = targetEmps.length;
+  const ibgEmps   = targetEmps.filter(e => getEmpBanking(e) === 'Islamic Banking');
+  const convEmps  = targetEmps.filter(e => getEmpBanking(e) === 'Conventional');
+
+  const completedAll = rows.filter(r => r['Overall Status'] === 'Completed').length;
+  const ibgCompleted  = rows.filter(r => r['Banking Segment'] === 'Islamic Banking' && r['Overall Status'] === 'Completed').length;
+  const convCompleted = rows.filter(r => r['Banking Segment'] === 'Conventional'   && r['Overall Status'] === 'Completed').length;
+
+  const pct = t => t > 0 ? Math.round((arguments[1]/t)*100)+'%' : '—';
+
+  const summary = [
+    ['UBL L&D Programme Coverage Report'],
+    ['Programme', prog.name],
+    ['Category', prog.category],
+    ['Report Generated', new Date().toLocaleString('en-PK')],
+    ['Headcount Month', hc.month || '—'],
+    [],
+    ['OVERALL SUMMARY'],
+    ['Segment', 'Target', 'Completed', 'Pending', 'Coverage %'],
+    ['All',             totalTarget,   completedAll,            totalTarget-completedAll,           totalTarget>0?Math.round(completedAll/totalTarget*100)+'%':'—'],
+    ['Islamic Banking', ibgEmps.length, ibgCompleted,           ibgEmps.length-ibgCompleted,        ibgEmps.length>0?Math.round(ibgCompleted/ibgEmps.length*100)+'%':'—'],
+    ['Conventional',    convEmps.length, convCompleted,          convEmps.length-convCompleted,      convEmps.length>0?Math.round(convCompleted/convEmps.length*100)+'%':'—'],
+  ];
+
+  // Phase summary rows
+  if (prog.phases.length) {
+    summary.push([]);
+    summary.push(['PHASE BREAKDOWN']);
+    summary.push(['Phase', 'Completed', 'Remaining', 'Coverage %']);
+    prog.phases.forEach(ph => {
+      const done = [...phaseAttended[ph]].filter(id => targetEmps.some(e => normStr(e['Employee No.']) === id)).length;
+      summary.push([ph, done, totalTarget-done, totalTarget>0?Math.round(done/totalTarget*100)+'%':'—']);
+    });
+  }
+
+  // Functional title summary
+  summary.push([]);
+  summary.push(['FUNCTIONAL TITLE BREAKDOWN']);
+  summary.push(['Functional Title', 'Target', 'Completed', 'Coverage %']);
+  const titleGroups = {};
+  targetEmps.forEach(e => {
+    const t = normStr(e['Functional Title']) || '#N/A';
+    if (!titleGroups[t]) titleGroups[t] = { target:0, done:0 };
+    titleGroups[t].target++;
+    const id = normStr(e['Employee No.']);
+    const lastPh = phaseKeys[phaseKeys.length-1];
+    if (phaseAttended[lastPh]?.has(id)) titleGroups[t].done++;
+  });
+  Object.entries(titleGroups).sort((a,b)=>b[1].target-a[1].target).forEach(([title,d])=>{
+    summary.push([title, d.target, d.done, d.target>0?Math.round(d.done/d.target*100)+'%':'—']);
+  });
+
+  // Write Excel using SheetJS
+  const wb = XLSX.utils.book_new();
+
+  const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+  wsSummary['!cols'] = [{wch:35},{wch:15},{wch:15},{wch:15},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Coverage Summary');
+
+  const wsDetail = XLSX.utils.json_to_sheet(rows);
+  wsDetail['!cols'] = [{wch:14},{wch:28},{wch:8},{wch:28},{wch:30},{wch:18},...phaseKeys.map(()=>({wch:12})),{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsDetail, 'Employee Detail');
+
+  // Pending only sheet
+  const pendingRows = rows.filter(r => r['Overall Status'] === 'Pending');
+  if (pendingRows.length) {
+    const wsPending = XLSX.utils.json_to_sheet(pendingRows);
+    wsPending['!cols'] = wsDetail['!cols'];
+    XLSX.utils.book_append_sheet(wb, wsPending, 'Pending Employees');
+  }
+
+  const filename = `${prog.name.replace(/[^a-z0-9]/gi,'_')}_Coverage_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, filename);
 }
 
 // ════════════════════════════════════════════════════════
