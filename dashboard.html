@@ -997,7 +997,7 @@ canvas { display: block; }
     <!-- ── PROGRAM PROGRESS ─────────────────────────── -->
     <div class="sec" id="progSec" style="display:none">
       <span class="sec-title">Programme Coverage Progress</span>
-      <span class="sec-note">Cross-referenced against active headcount · Resigned employees excluded automatically</span>
+      <span class="sec-note">Headcount cross-referenced · Resigned excluded · Islamic &amp; Conventional split</span>
     </div>
     <div id="progProgressGrid" style="display:none;margin-bottom:13px"></div>
 
@@ -1645,134 +1645,177 @@ function renderProgramProgress() {
 }
 
 function buildProgCard(prog, hc, resigned, idx) {
-  // Step 1: determine target audience from headcount
-  // If no headcount, show warning
   if (!hc || !hc.rows || !hc.rows.length) {
-    return `<div class="pp-card" style="animation-delay:${idx * 0.07}s">
-      <div class="pp-head">
-        <div><div class="pp-name">${prog.name}</div></div>
-        <span class="pp-cat">${prog.category}</span>
-      </div>
-      <div class="pp-no-hc">📋 No headcount data uploaded yet.<br>
-        <span style="font-size:11px;color:var(--text4)">Upload headcount from Admin Panel → Headcount tab to enable coverage tracking.</span>
-      </div>
+    return `<div class="pp-card" style="animation-delay:${idx*0.07}s">
+      <div class="pp-head"><div><div class="pp-name">${prog.name}</div></div><span class="pp-cat">${prog.category}</span></div>
+      <div class="pp-no-hc">📋 No headcount uploaded yet — go to Admin Panel → Headcount tab.</div>
     </div>`;
   }
 
-  // Step 2: filter headcount to target audience (exclude resigned)
-  const targetEmps = hc.rows.filter(emp => {
-    const empId = norm(emp['Employee No.']);
-    if (!empId || resigned.has(empId)) return false;
-    const grpMatch = !prog.groups.length ||
-      prog.groups.some(g => norm(emp['Group']).toLowerCase() === g.toLowerCase());
-    const titleMatch = !prog.titles.length ||
-      prog.titles.some(t => norm(emp['Functional Title']).toLowerCase() === t.toLowerCase());
-    return grpMatch && titleMatch;
+  const normStr = v => v == null ? '' : String(v).trim();
+
+  // ── Determine banking type for each headcount employee ─────────────────
+  const getEmpBanking = emp => {
+    const grp = normStr(emp['Group']).toLowerCase();
+    if (grp.includes('islamic banking')) return 'ibg';
+    if (grp.includes('branch banking'))  return 'conv';
+    return 'ho';
+  };
+
+  // ── Target audience from headcount (exclude resigned) ──────────────────
+  const targetAll = hc.rows.filter(emp => {
+    const id = normStr(emp['Employee No.']);
+    if (!id || resigned.has(id)) return false;
+    const grpOk   = !prog.groups.length || prog.groups.some(g => normStr(emp['Group']).toLowerCase() === g.toLowerCase());
+    const titleOk = !prog.titles.length || prog.titles.some(t => normStr(emp['Functional Title']).toLowerCase() === t.toLowerCase());
+    return grpOk && titleOk;
   });
 
-  const targetIds = new Set(targetEmps.map(e => norm(e['Employee No.'])).filter(Boolean));
-  const targetCount = targetIds.size;
+  const targetIds = new Set(targetAll.map(e => normStr(e['Employee No.'])).filter(Boolean));
+  const ibgTarget  = targetAll.filter(e => getEmpBanking(e) === 'ibg');
+  const convTarget = targetAll.filter(e => getEmpBanking(e) === 'conv');
+  const ibgIds     = new Set(ibgTarget.map(e  => normStr(e['Employee No.'])).filter(Boolean));
+  const convIds    = new Set(convTarget.map(e => normStr(e['Employee No.'])).filter(Boolean));
 
-  // Step 3: cross-reference with training data
-  // Filter training data by this program's category
-  const progTraining = filteredData.filter(r => {
-    const cat = norm(r['Category']).toLowerCase();
-    return cat === prog.category.toLowerCase();
+  // ── Training data for this program ─────────────────────────────────────
+  const progRows = filteredData.filter(r => normStr(r['Category']).toLowerCase() === prog.category.toLowerCase());
+
+  // ── Phase completion logic ──────────────────────────────────────────────
+  const phaseKeys = prog.phases.length ? prog.phases : ['_all'];
+  const phaseAttended = {};
+
+  phaseKeys.forEach(phase => {
+    let rows;
+    if (phase === '_all') {
+      rows = progRows.filter(r => isAttended(r));
+    } else {
+      rows = progRows.filter(r => normStr(r['Course Title']).toLowerCase().includes(phase.toLowerCase()) && isAttended(r));
+    }
+    phaseAttended[phase] = new Set(rows.map(r => normStr(r['Employee No.'])).filter(id => id && targetIds.has(id)));
   });
 
-  // Phase logic: if phases defined, detect from Course Title
-  let phaseData = [];
+  // Sequential: being in phase N implies phases 1..(N-1)
   if (prog.phases.length) {
-    phaseData = prog.phases.map((phase, phIdx) => {
-      // Find rows where Course Title contains this phase text
-      const phaseRows = progTraining.filter(r =>
-        norm(r['Course Title']).toLowerCase().includes(phase.toLowerCase()) && isAttended(r)
-      );
-      const completedIds = new Set(
-        phaseRows.map(r => norm(r['Employee No.'])).filter(id => id && targetIds.has(id))
-      );
-      return { phase, completed: completedIds.size, ids: completedIds };
-    });
-
-    // Determine highest phase completed per employee (sequential logic)
-    // An employee in Phase II implies they also did Phase I
-    phaseData.forEach((pd, i) => {
+    prog.phases.forEach((ph, i) => {
       if (i > 0) {
-        // Add all Phase II completers to Phase I as well
-        phaseData[i].ids.forEach(id => {
-          for (let j = 0; j < i; j++) phaseData[j].ids.add(id);
+        phaseAttended[ph].forEach(id => {
+          for (let j = 0; j < i; j++) phaseAttended[prog.phases[j]].add(id);
         });
       }
     });
-    // Recount after propagation
-    phaseData.forEach(pd => { pd.completed = pd.ids.size; });
   }
 
-  // Overall completion = any employee who attended at least the first phase (or any course if no phases)
-  let completedIds;
-  if (prog.phases.length && phaseData.length) {
-    // Completed = attended at least Phase I
-    completedIds = phaseData[0].ids;
-  } else {
-    // No phases — standalone: attended = completed
-    const attended = progTraining.filter(r => isAttended(r));
-    completedIds = new Set(
-      attended.map(r => norm(r['Employee No.'])).filter(id => id && targetIds.has(id))
-    );
-  }
+  // Overall = completed at least phase 1 (or standalone)
+  const finalKey = phaseKeys[phaseKeys.length - 1];
+  const completedIds   = phaseAttended[phaseKeys[0]];
+  const ibgCompleted   = new Set([...completedIds].filter(id => ibgIds.has(id)));
+  const convCompleted  = new Set([...completedIds].filter(id => convIds.has(id)));
 
-  const completed = completedIds.size;
-  const pending = targetCount - completed;
-  const pct = targetCount > 0 ? Math.round((completed / targetCount) * 100) : 0;
+  const totalTarget = targetIds.size;
+  const totalDone   = completedIds.size;
+  const totalPct    = totalTarget > 0 ? Math.round(totalDone/totalTarget*100) : 0;
+  const ibgPct      = ibgIds.size   > 0 ? Math.round(ibgCompleted.size/ibgIds.size*100)  : 0;
+  const convPct     = convIds.size  > 0 ? Math.round(convCompleted.size/convIds.size*100) : 0;
 
-  // Ring colour based on pct
-  const ringColor = pct >= 80 ? '#0a8f5c' : pct >= 50 ? '#c47500' : '#0175C0';
+  const ringColor = totalPct >= 80 ? '#0a8f5c' : totalPct >= 50 ? '#c47500' : '#0175C0';
+  const r = 37, circ = 2 * Math.PI * r;
 
-  // MoM comparison — compare vs previous headcount upload
+  // ── MoM comparison ──────────────────────────────────────────────────────
   const prevHcMonth = getPrevHcMonth();
   let momHTML = '';
   if (prevHcMonth) {
-    // We store completed count per program per month if available
-    const prevKey = `ubl_prog_snap_${prog.id}_${prevHcMonth.replace(/\s/g,'_')}`;
+    const prevKey  = `ubl_prog_snap_${prog.id}_${prevHcMonth.replace(/\s/g,'_')}`;
     const prevSnap = tryParse(localStorage.getItem(prevKey));
     if (prevSnap !== null) {
-      const diff = pct - prevSnap;
-      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
-      const col = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text3)';
-      momHTML = `<div class="pp-mom">
-        <span class="pp-mom-arrow" style="color:${col}">${arrow}</span>
-        <span class="pp-mom-text">vs last month: </span>
-        <span class="pp-mom-val" style="color:${col}">${diff > 0 ? '+' : ''}${diff}% coverage change</span>
-      </div>`;
+      const diff = totalPct - prevSnap;
+      const col  = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text3)';
+      momHTML = `<div class="pp-mom"><span style="color:${col}">${diff>0?'↑':diff<0?'↓':'→'}</span>&nbsp;<span class="pp-mom-text">vs last month:</span>&nbsp;<span class="pp-mom-val" style="color:${col}">${diff>0?'+':''}${diff}% overall coverage change</span></div>`;
     }
-    // Save current snapshot for next month comparison
-    const curKey = `ubl_prog_snap_${prog.id}_${(hc.month||'current').replace(/\s/g,'_')}`;
-    localStorage.setItem(curKey, JSON.stringify(pct));
+    localStorage.setItem(`ubl_prog_snap_${prog.id}_${(hc.month||'current').replace(/\s/g,'_')}`, JSON.stringify(totalPct));
   }
 
-  // Pending employee list
-  const pendingEmps = targetEmps.filter(e => !completedIds.has(norm(e['Employee No.'])));
-  const pendingId = `pending-${prog.id}`;
+  // ── Phase breakdown bars ────────────────────────────────────────────────
+  const phaseBarsHTML = prog.phases.length ? `
+    <div class="pp-phases">
+      ${prog.phases.map((ph, i) => {
+        const done   = phaseAttended[ph].size;
+        const phasePct = totalTarget > 0 ? Math.round(done/totalTarget*100) : 0;
+        return `<div class="pp-phase-row">
+          <div class="pp-phase-lbl" title="${ph}">Phase ${i+1}</div>
+          <div class="pp-phase-track"><div class="pp-phase-fill" data-width="${phasePct}" style="width:0%"></div></div>
+          <div class="pp-phase-pct">${phasePct}%</div>
+          <div class="pp-phase-count">${done.toLocaleString()} / ${totalTarget.toLocaleString()}</div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
 
-  const phaseRows = phaseData.length ? phaseData.map((pd, i) => {
-    const phasePct = targetCount > 0 ? Math.round((pd.completed / targetCount) * 100) : 0;
-    return `<div class="pp-phase-row">
-      <div class="pp-phase-lbl">${pd.phase}</div>
-      <div class="pp-phase-track"><div class="pp-phase-fill" data-width="${phasePct}" style="width:0%"></div></div>
-      <div class="pp-phase-pct">${phasePct}%</div>
-      <div class="pp-phase-count">${pd.completed} / ${targetCount}</div>
-    </div>`;
-  }).join('') : '';
+  // ── Islamic / Conventional split cards ─────────────────────────────────
+  const showIbg  = ibgIds.size  > 0;
+  const showConv = convIds.size > 0;
+  const splitHTML = (showIbg || showConv) ? `
+    <div style="display:grid;grid-template-columns:${showIbg&&showConv?'1fr 1fr':'1fr'};gap:10px;margin-bottom:14px">
+      ${showIbg ? `<div style="background:var(--ibg-tint);border:1px solid var(--ibg-border);border-radius:10px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--ibg);margin-bottom:6px">🕌 Islamic Banking</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px">
+          <span style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:var(--text)">${ibgPct}%</span>
+          <span style="font-size:11px;color:var(--text3)">${ibgCompleted.size} / ${ibgIds.size} employees</span>
+        </div>
+        <div style="height:5px;background:rgba(13,122,80,0.15);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:var(--ibg);border-radius:3px;width:${ibgPct}%"></div>
+        </div>
+      </div>` : ''}
+      ${showConv ? `<div style="background:var(--conv-tint);border:1px solid var(--conv-border);border-radius:10px;padding:12px 14px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--conv);margin-bottom:6px">🏦 Conventional</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px">
+          <span style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:var(--text)">${convPct}%</span>
+          <span style="font-size:11px;color:var(--text3)">${convCompleted.size} / ${convIds.size} employees</span>
+        </div>
+        <div style="height:5px;background:rgba(184,96,0,0.15);border-radius:3px;overflow:hidden">
+          <div style="height:100%;background:var(--conv);border-radius:3px;width:${convPct}%"></div>
+        </div>
+      </div>` : ''}
+    </div>` : '';
 
-  const r = 37, circ = 2 * Math.PI * r;
+  // ── Functional Title breakdown ──────────────────────────────────────────
+  const titleMap = {};
+  targetAll.forEach(emp => {
+    const title = normStr(emp['Functional Title']) || '#N/A';
+    const id    = normStr(emp['Employee No.']);
+    if (!titleMap[title]) titleMap[title] = { target:0, done:0 };
+    titleMap[title].target++;
+    if (completedIds.has(id)) titleMap[title].done++;
+  });
+  const titleEntries = Object.entries(titleMap).sort((a,b) => b[1].target - a[1].target);
+  const titleBarsHTML = titleEntries.length ? `
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text4);margin-bottom:8px">Coverage by Functional Title</div>
+      ${titleEntries.map(([title, d]) => {
+        const tp = d.target > 0 ? Math.round(d.done/d.target*100) : 0;
+        const barCol = tp >= 80 ? 'var(--green)' : tp >= 50 ? 'var(--amber)' : '#0175C0';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="font-size:11px;color:var(--text2);min-width:200px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${title}">${title}</div>
+          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden;min-width:60px">
+            <div style="height:100%;background:${barCol};border-radius:3px;width:${tp}%"></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:${barCol};min-width:32px;text-align:right">${tp}%</div>
+          <div style="font-size:10.5px;color:var(--text4);min-width:52px;text-align:right">${d.done}/${d.target}</div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
 
-  return `<div class="pp-card" style="animation-delay:${idx * 0.07}s">
+  // ── Pending employees list ──────────────────────────────────────────────
+  const pendingEmps = targetAll.filter(e => !completedIds.has(normStr(e['Employee No.'])));
+  const pendingId   = `pending-${prog.id}`;
+
+  return `<div class="pp-card" style="animation-delay:${idx*0.07}s">
     <div class="pp-head">
       <div>
         <div class="pp-name">${prog.name}</div>
         ${prog.notes ? `<div style="font-size:11px;color:var(--text4);margin-top:2px">${prog.notes}</div>` : ''}
       </div>
-      <span class="pp-cat">${prog.category}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span class="pp-cat">${prog.category}</span>
+      </div>
     </div>
 
     <div class="pp-ring-wrap">
@@ -1780,43 +1823,40 @@ function buildProgCard(prog, hc, resigned, idx) {
         <svg viewBox="0 0 90 90" width="90" height="90">
           <circle class="pp-ring-bg" cx="45" cy="45" r="${r}"/>
           <circle class="pp-ring-fill" cx="45" cy="45" r="${r}"
-            stroke="${ringColor}"
-            stroke-dasharray="${circ}"
-            stroke-dashoffset="${circ}"
-            data-target="${pct}"/>
+            stroke="${ringColor}" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-target="${totalPct}"/>
         </svg>
         <div class="pp-ring-text">
-          <div class="pp-ring-pct" style="color:${ringColor}">${pct}%</div>
+          <div class="pp-ring-pct" style="color:${ringColor}">${totalPct}%</div>
           <div class="pp-ring-lbl">Coverage</div>
         </div>
       </div>
       <div class="pp-summary">
         <div class="pp-summary-row">
-          <div class="pp-stat total"><div class="pp-stat-v">${targetCount.toLocaleString()}</div><div class="pp-stat-l">Target Audience</div></div>
-          <div class="pp-stat done"><div class="pp-stat-v">${completed.toLocaleString()}</div><div class="pp-stat-l">Completed</div></div>
-          <div class="pp-stat pend"><div class="pp-stat-v">${pending.toLocaleString()}</div><div class="pp-stat-l">Pending</div></div>
+          <div class="pp-stat total"><div class="pp-stat-v">${totalTarget.toLocaleString()}</div><div class="pp-stat-l">Target</div></div>
+          <div class="pp-stat done"><div class="pp-stat-v">${totalDone.toLocaleString()}</div><div class="pp-stat-l">Completed</div></div>
+          <div class="pp-stat pend"><div class="pp-stat-v">${(totalTarget-totalDone).toLocaleString()}</div><div class="pp-stat-l">Pending</div></div>
         </div>
         <div style="margin-top:8px;font-size:10.5px;color:var(--text4)">
-          Audience: ${prog.groups.length ? prog.groups.join(', ') : 'All groups'}
-          ${prog.titles.length ? ' · ' + prog.titles.slice(0,2).join(', ') + (prog.titles.length > 2 ? ` +${prog.titles.length - 2} more` : '') : ''}
+          ${prog.groups.join(', ')} &nbsp;·&nbsp; ${prog.titles.length} functional titles
         </div>
       </div>
     </div>
 
     ${momHTML}
-
-    ${phaseRows ? `<div class="pp-phases">${phaseRows}</div>` : ''}
+    ${splitHTML}
+    ${phaseBarsHTML}
+    ${titleBarsHTML}
 
     ${pendingEmps.length ? `
-    <div class="pp-pending-toggle" onclick="togglePending('${pendingId}', this)">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    <div class="pp-pending-toggle" onclick="togglePending('${pendingId}',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       ${pendingEmps.length.toLocaleString()} employees yet to attend
       <svg id="${pendingId}-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:auto;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
     </div>
     <div class="pp-pending-list" id="${pendingId}">
       <table>
-        <thead><tr><th>Employee No.</th><th>Name</th><th>Grade</th><th>Group</th><th>Functional Title</th></tr></thead>
-        <tbody>${pendingEmps.slice(0,200).map(e => `
+        <thead><tr><th>Emp. No.</th><th>Name</th><th>Grade</th><th>Group</th><th>Functional Title</th></tr></thead>
+        <tbody>${pendingEmps.slice(0,200).map(e=>`
           <tr>
             <td><strong>${e['Employee No.']||'—'}</strong></td>
             <td>${e['Employee Name']||'—'}</td>
@@ -1824,12 +1864,14 @@ function buildProgCard(prog, hc, resigned, idx) {
             <td>${e['Group']||'—'}</td>
             <td>${e['Functional Title']||'—'}</td>
           </tr>`).join('')}
-          ${pendingEmps.length > 200 ? `<tr><td colspan="5" style="text-align:center;color:var(--text4);font-size:11px;padding:10px">Showing first 200 of ${pendingEmps.length} pending employees</td></tr>` : ''}
+          ${pendingEmps.length>200?`<tr><td colspan="5" style="text-align:center;color:var(--text4);font-size:11px;padding:8px">Showing 200 of ${pendingEmps.length}</td></tr>`:''}
         </tbody>
       </table>
-    </div>` : `<div style="font-size:12px;color:var(--green);font-weight:600;padding:10px 0;border-top:1px solid var(--border)">✓ All target employees have completed this programme</div>`}
+    </div>`
+    : `<div style="font-size:12px;color:var(--green);font-weight:600;padding:10px 0;border-top:1px solid var(--border)">✓ All target employees have completed this programme</div>`}
   </div>`;
 }
+
 
 function togglePending(id, btn) {
   const el = document.getElementById(id);
