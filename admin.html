@@ -512,6 +512,27 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 // CHUNKED HEADCOUNT SYNC
 // Sends large headcount in 500-row batches to avoid Apps Script timeout
 // ════════════════════════════════════════════════════════
+// ── Load ALL training data from per-month localStorage keys ──────────────
+// Merges per-month keys (new format) + legacy blob (old format) seamlessly
+function loadAllTrainingData() {
+  const rows = [];
+  try {
+    const tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
+    tdIndex.forEach(m => {
+      try {
+        const chunk = JSON.parse(localStorage.getItem(m.key) || '[]');
+        rows.push(...chunk);
+      } catch(e) { console.warn('Failed reading month:', m.label); }
+    });
+  } catch(e) {}
+  // Legacy single-blob fallback (data uploaded before this fix)
+  try {
+    const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
+    if (legacy.length) rows.push(...legacy);
+  } catch(e) {}
+  return rows;
+}
+
 async function syncTrainingInChunks(label, rows) {
   const CHUNK = 500;
   const total = rows.length;
@@ -807,23 +828,25 @@ async function processTrainingData(){
     return s;
   });
 
-  // Get existing data, remove same month, append new
-  let existing = [];
-  try { existing = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]'); } catch(e) {}
-  existing = existing.filter(r => r._uploadMonth !== label);
-  const merged = [...existing, ...slim];
-
+  // Store each month's data in its own localStorage key (per-month chunking)
+  // This bypasses the 5MB single-key limit — 13 months × ~1MB each = fine
+  const monthKey = 'ubl_td_' + label.replace(/[^a-z0-9]/gi, '_');
   try {
-    localStorage.setItem('ubl_ld_data', JSON.stringify(merged));
-  } catch(storageErr) {
-    // localStorage quota exceeded — keep only current month in local storage
-    console.warn('localStorage full, keeping current month only:', storageErr);
-    try {
-      localStorage.setItem('ubl_ld_data', JSON.stringify(slim));
-    } catch(e2) {
-      console.error('localStorage completely full:', e2);
-    }
+    localStorage.setItem(monthKey, JSON.stringify(slim));
+  } catch(e) {
+    console.warn('Failed to store month data:', label, e.message);
   }
+
+  // Update the month index (list of stored month keys)
+  let tdIndex = [];
+  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
+  if (!tdIndex.find(m => m.label === label)) {
+    tdIndex.push({ label, key: monthKey });
+  }
+  localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex));
+
+  // Remove legacy single-blob key if it exists (migration)
+  localStorage.removeItem('ubl_ld_data');
 
   // Save meta
   let meta = []; try { meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]'); } catch(e) {}
@@ -852,7 +875,24 @@ async function processTrainingData(){
 function refreshTrainingRepo(){
   let meta=[],total=0,courses=0;
   try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
-  try{ const d=JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); total=d.length; courses=new Set(d.map(r=>norm(r['Course Title'])).filter(Boolean)).size; }catch(e){}
+  try{
+    const tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
+    let allCourses = new Set();
+    tdIndex.forEach(m => {
+      try {
+        const rows = JSON.parse(localStorage.getItem(m.key) || '[]');
+        total += rows.length;
+        rows.forEach(r => { if(r['Course Title']) allCourses.add(norm(r['Course Title'])); });
+      } catch(e) {}
+    });
+    // Legacy blob fallback
+    const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
+    if(legacy.length) {
+      total += legacy.length;
+      legacy.forEach(r => { if(r['Course Title']) allCourses.add(norm(r['Course Title'])); });
+    }
+    courses = allCourses.size;
+  }catch(e){}
   document.getElementById('repoMonths').textContent=meta.length;
   document.getElementById('repoRecords').textContent=total.toLocaleString();
   document.getElementById('repoLastUpload').textContent=meta.length?meta[meta.length-1].month:'—';
@@ -874,11 +914,18 @@ function refreshTrainingRepo(){
 
 function deleteTrainingMonth(month){
   if(!confirm(`Delete all training data for "${month}"?`)) return;
+  // Remove per-month key
+  const monthKey = 'ubl_td_' + month.replace(/[^a-z0-9]/gi, '_');
+  localStorage.removeItem(monthKey);
+  // Update index
+  let tdIndex = [];
+  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
+  localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex.filter(m => m.label !== month)));
+  // Also clean legacy blob
   let d=[]; try{ d=JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); }catch(e){}
-  localStorage.setItem('ubl_ld_data',JSON.stringify(d.filter(r=>r._uploadMonth!==month)));
+  if(d.length) localStorage.setItem('ubl_ld_data',JSON.stringify(d.filter(r=>r._uploadMonth!==month)));
   let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
   localStorage.setItem('ubl_ld_meta',JSON.stringify(meta.filter(m=>m.month!==month)));
-  // Sync delete to Sheets
   syncToSheets({ action:'delete', monthLabel:month });
   refreshTrainingRepo();
 }
@@ -1520,7 +1567,19 @@ function refreshAppsScriptDisplay() {
   }
 }
 
-function clearTrainingData(){ if(!confirm('Clear ALL training data?')) return; localStorage.removeItem('ubl_ld_data'); localStorage.removeItem('ubl_ld_meta'); syncToSheets({action:'clearAll'}); refreshTrainingRepo(); showStatus('trainingStatus','info','Cleared','All training data removed.'); }
+function clearTrainingData(){
+  if(!confirm('Clear ALL training data?')) return;
+  // Clear all per-month keys
+  let tdIndex = [];
+  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
+  tdIndex.forEach(m => localStorage.removeItem(m.key));
+  localStorage.removeItem('ubl_td_index');
+  localStorage.removeItem('ubl_ld_data');
+  localStorage.removeItem('ubl_ld_meta');
+  syncToSheets({action:'clearAll'});
+  refreshTrainingRepo();
+  showStatus('trainingStatus','info','Cleared','All training data removed.');
+}
 function clearHeadcount(){
   if(!confirm('Clear ALL headcount data?')) return;
   // Clear chunks
