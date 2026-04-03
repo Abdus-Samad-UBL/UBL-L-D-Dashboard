@@ -657,7 +657,7 @@ function saveCredentials(){
 function showTab(id){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.page').forEach(p=>{ p.classList.remove('on'); p.style.display='none'; });
-  const tabEl = [...document.querySelectorAll('.tab')].find(t=>t.getAttribute('onclick')?.includes(id));
+  const tabEl = [...document.querySelectorAll('.tab')].find(t=>t.getAttribute('onclick') && t.getAttribute('onclick').includes(id));
   if(tabEl) tabEl.classList.add('on');
   const page = document.getElementById('tab-'+id);
   if(page){ page.classList.add('on'); page.style.display='block'; }
@@ -1368,7 +1368,7 @@ function exportProgramReport(progId){
     ['Programme', prog.name],
     ['Category',  prog.category],
     ['Report Generated', new Date().toLocaleString('en-PK')],
-    ['Headcount Month', hcMeta?.month||'—'],
+    ['Headcount Month', (hcMeta && hcMeta.month ? hcMeta.month : '—')],
     [],
   ];
 
