@@ -357,55 +357,97 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 <!-- ══ TAB 3: PROGRAM CONFIG ═════════════════════════════ -->
 <div class="page" id="tab-programs">
   <div class="page-h">Program Configuration</div>
-  <div class="page-sub">Define training programs and their target audiences. The dashboard will automatically track Islamic Banking and Conventional Banking coverage separately, show functional title breakdowns, and let you export progress reports.</div>
+  <div class="page-sub">
+    Define a Program (e.g. Branch Development Program), then add Courses within it.
+    Each Course has its own audience (Functional Titles) and up to 4 phases.
+    The dashboard tracks overall program progress plus individual course progress.
+  </div>
 
-  <div class="sec">Add New Program</div>
-  <div class="card">
+  <!-- STEP 1: Program shell -->
+  <div class="sec">Step 1 — Create Program</div>
+  <div class="card" id="progShellCard">
     <div class="field-row">
       <div class="field">
         <label class="field-lbl">Program Title</label>
         <input class="field-inp" type="text" id="progName" placeholder="e.g. Branch Development Program"/>
       </div>
       <div class="field">
-        <label class="field-lbl">Target Category <span style="font-weight:400;color:var(--text4)">(must match exactly the Category column value in your training data)</span></label>
+        <label class="field-lbl">Category <span style="font-weight:400;color:var(--text4)">(must match exactly the Category column in training data)</span></label>
         <input class="field-inp" type="text" id="progCategory" placeholder="e.g. Branch Development Program"/>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label class="field-lbl">Target Groups <span style="font-weight:400;color:var(--text4)">(one per line or comma-separated)</span></label>
-        <textarea class="field-inp" id="progGroups" rows="3" placeholder="Branch Banking Group&#10;Islamic Banking Group"></textarea>
+        <label class="field-lbl">Mandated Groups <span style="font-weight:400;color:var(--text4)">(who MUST complete this program)</span></label>
+        <textarea class="field-inp" id="progGroups" rows="2" placeholder="Branch Banking Group&#10;Islamic Banking Group"></textarea>
       </div>
       <div class="field">
-        <label class="field-lbl">Target Functional Titles <span style="font-weight:400;color:var(--text4)">(one per line — use #N/A for employees without a title)</span></label>
-        <textarea class="field-inp" id="progTitles" rows="3" placeholder="Branch Manager&#10;Branch Operations Manager&#10;Branch Services Officer&#10;#N/A"></textarea>
+        <label class="field-lbl">Notes / Description (optional)</label>
+        <textarea class="field-inp" id="progNotes" rows="2" placeholder="Program goals, completion target, etc."></textarea>
+      </div>
+    </div>
+    <button onclick="addProgram()" style="padding:9px 22px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--sh-ubl)">
+      + Create Program
+    </button>
+    <div class="status-box" id="progAddStatus" style="margin-top:10px;margin-bottom:0"></div>
+  </div>
+
+  <!-- STEP 2: Add courses to a program -->
+  <div class="sec" style="margin-top:4px">Step 2 — Add Courses to a Program</div>
+  <div class="card">
+    <div style="font-size:12.5px;color:var(--text3);margin-bottom:14px;line-height:1.7">
+      Each course within a program has its own target audience (Functional Titles) and phases.
+      The Course Title prefix in your data must exactly match what you enter here.<br>
+      <strong style="color:var(--text2)">Example:</strong> Course base name = <code style="background:var(--bg2);padding:1px 5px;border-radius:4px">BM &amp; BOM Development Program</code>
+      with 4 phases → system looks for Course Titles containing "BM &amp; BOM Development Program Phase I", "…Phase II", etc.
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="field-lbl">Add to Program</label>
+        <select class="field-inp" id="courseProgId">
+          <option value="">— Select a program first —</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-lbl">Course Base Name <span style="font-weight:400;color:var(--text4)">(exact text before "Phase I", "Phase II" etc.)</span></label>
+        <input class="field-inp" type="text" id="courseName" placeholder="e.g. BM &amp; BOM Development Program"/>
       </div>
     </div>
     <div class="field-row">
       <div class="field">
-        <label class="field-lbl">Phases / Courses <span style="font-weight:400;color:var(--text4)">(one per line — must match text in Course Title column. Leave blank if no phases.)</span></label>
-        <textarea class="field-inp" id="progPhases" rows="3" placeholder="BM &amp; BOM Development Program Phase I&#10;BM &amp; BOM Development Program Phase II"></textarea>
+        <label class="field-lbl">Target Functional Titles <span style="font-weight:400;color:var(--text4)">(one per line — these employees MUST complete this course)</span></label>
+        <textarea class="field-inp" id="courseTitles" rows="4" placeholder="Branch Manager&#10;Branch Operations Manager"></textarea>
       </div>
       <div class="field">
-        <label class="field-lbl">Notes / Description (optional)</label>
-        <textarea class="field-inp" id="progNotes" rows="3" placeholder="Any notes about this program, its goals, or target completion date"></textarea>
+        <label class="field-lbl">Number of Phases</label>
+        <select class="field-inp" id="coursePhaseCount">
+          <option value="1">1 phase (standalone)</option>
+          <option value="2">2 phases</option>
+          <option value="3">3 phases</option>
+          <option value="4" selected>4 phases</option>
+        </select>
+        <div style="margin-top:10px">
+          <label class="field-lbl">Phase Label Style</label>
+          <select class="field-inp" id="coursePhaseStyle">
+            <option value="roman">Phase I, Phase II, Phase III, Phase IV</option>
+            <option value="numeric">Phase 1, Phase 2, Phase 3, Phase 4</option>
+          </select>
+        </div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px">
-      <button onclick="addProgram()" style="padding:10px 24px;background:var(--ubl);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--sh-ubl);transition:all 0.2s" onmouseover="this.style.background='var(--ubl-dark)'" onmouseout="this.style.background='var(--ubl)'">
-        + Add Program
-      </button>
-      <span style="font-size:12px;color:var(--text3)">Islamic Banking and Conventional Banking splits are detected automatically from the Group column</span>
-    </div>
-    <div class="status-box" id="progAddStatus" style="margin-top:12px;margin-bottom:0"></div>
+    <button onclick="addCourse()" style="padding:9px 22px;background:var(--ibg);color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">
+      + Add Course to Program
+    </button>
+    <div class="status-box" id="courseAddStatus" style="margin-top:10px;margin-bottom:0"></div>
   </div>
 
+  <!-- CONFIGURED PROGRAMS LIST -->
   <div class="sec" style="margin-top:4px">
     Configured Programs (<span id="progCount">0</span>)
-    <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text3)">Use the Export button on each program to download a coverage report</span>
+    <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--text3)">Export button downloads full coverage report with course & phase breakdown</span>
   </div>
   <div class="prog-list" id="progList">
-    <div style="text-align:center;padding:28px;color:var(--text4);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)" id="progListEmpty">No programs configured yet. Add your first program above.</div>
+    <div style="text-align:center;padding:28px;color:var(--text4);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r)" id="progListEmpty">No programs configured yet.</div>
   </div>
 </div>
 
@@ -607,6 +649,7 @@ function initAdmin(){
   refreshTrainingRepo();
   refreshHcSummary();
   refreshProgList();
+  refreshCourseProgDropdown();
   refreshAppsScriptDisplay();
   // Attempt to pull programs config from Sheets on load
   syncToSheets({ action:'getPrograms' }).then(r => {
@@ -1087,315 +1130,320 @@ function deleteHcMonth(month){
 }
 
 // ════════════════════════════════════════════════════════
-// PROGRAM CONFIG
+// PROGRAM CONFIG — Course-based structure
+// Program → [Course → {titles, phaseCount, phaseLabels}]
 // ════════════════════════════════════════════════════════
 function getPrograms(){ try{ return JSON.parse(localStorage.getItem('ubl_programs')||'[]'); }catch(e){ return []; } }
 function savePrograms(progs){ localStorage.setItem('ubl_programs',JSON.stringify(progs)); }
 
+// Populate the "Add to Program" dropdown in the course form
+function refreshCourseProgDropdown(){
+  const sel = document.getElementById('courseProgId');
+  const progs = getPrograms();
+  sel.innerHTML = '<option value="">— Select a program —</option>';
+  progs.forEach(p => { sel.innerHTML += `<option value="${p.id}">${p.name}</option>`; });
+}
+
+// ── Add Program (shell — no courses yet) ─────────────────────────────────
 function addProgram(){
-  const name=document.getElementById('progName').value.trim();
-  const cat=document.getElementById('progCategory').value.trim();
-  const groupsRaw=document.getElementById('progGroups').value.trim();
-  const titlesRaw=document.getElementById('progTitles').value.trim();
-  const phasesRaw=document.getElementById('progPhases').value.trim();
-  const notes=document.getElementById('progNotes').value.trim();
-  if(!name||!cat){ showStatus('progAddStatus','err','Missing Fields','Program Name and Category are required.'); return; }
-  const groups=groupsRaw?groupsRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean):[];
-  const titles=titlesRaw?titlesRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean):[];
-  const phases=phasesRaw?phasesRaw.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean):[];
-  const progs=getPrograms();
+  const name    = document.getElementById('progName').value.trim();
+  const cat     = document.getElementById('progCategory').value.trim();
+  const groupsR = document.getElementById('progGroups').value.trim();
+  const notes   = document.getElementById('progNotes').value.trim();
+  if(!name||!cat){ showStatus('progAddStatus','err','Missing Fields','Program Title and Category are required.'); return; }
+  const progs = getPrograms();
   if(progs.find(p=>p.name===name)){ showStatus('progAddStatus','err','Duplicate','A program with this name already exists.'); return; }
-  progs.push({ id:Date.now().toString(), name, category:cat, groups, titles, phases, notes, createdAt:new Date().toLocaleString('en-PK') });
+  const groups = groupsR ? groupsR.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean) : [];
+  progs.push({
+    id: Date.now().toString(),
+    name, category:cat, groups, notes,
+    courses: [],                         // courses added separately
+    createdAt: new Date().toLocaleString('en-PK')
+  });
   savePrograms(progs);
-  // Sync program config to Sheets
   syncToSheets({ action:'savePrograms', programs:progs });
-  showStatus('progAddStatus','ok','✓ Program Added',`"${name}" configured with ${groups.length} group rule(s), ${titles.length} title rule(s), and ${phases.length||'no'} phase(s).`);
-  document.getElementById('progName').value='';
-  document.getElementById('progCategory').value='';
-  document.getElementById('progGroups').value='';
-  document.getElementById('progTitles').value='';
-  document.getElementById('progPhases').value='';
-  document.getElementById('progNotes').value='';
+  showStatus('progAddStatus','ok','✓ Program Created',`"${name}" created. Now add courses to it using Step 2 above.`);
+  ['progName','progCategory','progGroups','progNotes'].forEach(id=>document.getElementById(id).value='');
+  refreshProgList();
+  refreshCourseProgDropdown();
+}
+
+// ── Add Course to Program ─────────────────────────────────────────────────
+function addCourse(){
+  const progId     = document.getElementById('courseProgId').value;
+  const courseName = document.getElementById('courseName').value.trim();
+  const titlesR    = document.getElementById('courseTitles').value.trim();
+  const phaseCount = parseInt(document.getElementById('coursePhaseCount').value) || 4;
+  const phaseStyle = document.getElementById('coursePhaseStyle').value;
+  if(!progId){ showStatus('courseAddStatus','err','No Program','Select a program first.'); return; }
+  if(!courseName){ showStatus('courseAddStatus','err','Missing Name','Course base name is required.'); return; }
+
+  const romanNums = ['I','II','III','IV'];
+  const phaseLabels = Array.from({length:phaseCount},(_,i)=>
+    `${courseName} Phase ${phaseStyle==='roman' ? romanNums[i] : (i+1)}`
+  );
+  const titles = titlesR ? titlesR.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean) : [];
+
+  const progs = getPrograms();
+  const prog  = progs.find(p=>p.id===progId);
+  if(!prog){ showStatus('courseAddStatus','err','Not Found','Program not found.'); return; }
+  if(prog.courses.find(co=>co.name===courseName)){
+    showStatus('courseAddStatus','err','Duplicate',`"${courseName}" already exists in this program.`); return;
+  }
+  prog.courses.push({ id: Date.now().toString(), name:courseName, titles, phaseCount, phaseLabels });
+  savePrograms(progs);
+  syncToSheets({ action:'savePrograms', programs:progs });
+  showStatus('courseAddStatus','ok','✓ Course Added',
+    `"${courseName}" added with ${phaseCount} phases. Phases: ${phaseLabels.join(', ')}`);
+  ['courseName','courseTitles'].forEach(id=>document.getElementById(id).value='');
+  refreshProgList();
+}
+
+function deleteCourse(progId, courseId){
+  if(!confirm('Remove this course?')) return;
+  const progs = getPrograms();
+  const prog  = progs.find(p=>p.id===progId);
+  if(!prog) return;
+  prog.courses = prog.courses.filter(co=>co.id!==courseId);
+  savePrograms(progs);
+  syncToSheets({ action:'savePrograms', programs:progs });
   refreshProgList();
 }
 
 function deleteProgram(id){
-  if(!confirm('Remove this program configuration?')) return;
+  if(!confirm('Remove this program and all its courses?')) return;
   const updated = getPrograms().filter(p=>p.id!==id);
   savePrograms(updated);
   syncToSheets({ action:'savePrograms', programs:updated });
   refreshProgList();
+  refreshCourseProgDropdown();
 }
 
+// ── Render Program List ───────────────────────────────────────────────────
 function refreshProgList(){
-  const progs=getPrograms();
-  document.getElementById('progCount').textContent=progs.length;
-  const container=document.getElementById('progList');
-  const empty=document.getElementById('progListEmpty');
+  const progs = getPrograms();
+  document.getElementById('progCount').textContent = progs.length;
+  const container = document.getElementById('progList');
+  const empty     = document.getElementById('progListEmpty');
   if(!progs.length){ container.innerHTML=''; container.appendChild(empty); empty.style.display='block'; return; }
-  empty.style.display='none';
+  empty.style.display = 'none';
 
-  // Detect IBG groups — used to show Islamic/Conventional split indicator
-  const isIbgGroup = g => g.toLowerCase().includes('islamic');
-  const isConvGroup = g => g.toLowerCase().includes('branch banking');
+  const isIbg  = g => g.toLowerCase().includes('islamic');
+  const isConv = g => g.toLowerCase().includes('branch banking');
 
-  container.innerHTML=progs.map(p=>{
-    const hasIbg  = p.groups.some(isIbgGroup);
-    const hasConv = p.groups.some(isConvGroup);
-    const hasBoth = hasIbg && hasConv;
-    const splitTag = hasBoth
+  container.innerHTML = progs.map(p => {
+    const hasIbg  = p.groups.some(isIbg);
+    const hasConv = p.groups.some(isConv);
+    const segTag = hasIbg && hasConv
       ? `<span style="font-size:10px;padding:2px 8px;background:#e6f4ee;color:#0d7a50;border-radius:12px;font-weight:600;border:1px solid #a7d7bb">🕌 Islamic + 🏦 Conventional</span>`
       : hasIbg
         ? `<span style="font-size:10px;padding:2px 8px;background:#e6f4ee;color:#0d7a50;border-radius:12px;font-weight:600;border:1px solid #a7d7bb">🕌 Islamic Banking</span>`
-        : hasConv
-          ? `<span style="font-size:10px;padding:2px 8px;background:#fff8e6;color:#b86000;border-radius:12px;font-weight:600;border:1px solid #e8ceaa">🏦 Conventional</span>`
-          : `<span style="font-size:10px;padding:2px 8px;background:#f2effe;color:#5235a0;border-radius:12px;font-weight:600;border:1px solid #c8b8e8">🏢 Head Office</span>`;
+        : `<span style="font-size:10px;padding:2px 8px;background:#fff8e6;color:#b86000;border-radius:12px;font-weight:600;border:1px solid #e8ceaa">🏦 Conventional</span>`;
+
+    const coursesHTML = p.courses.length ? p.courses.map(co => `
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:11px 14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div>
+            <span style="font-size:13px;font-weight:700;color:var(--text)">${co.name}</span>
+            <span style="font-size:10.5px;color:var(--text3);margin-left:8px">${co.phaseCount} phases</span>
+          </div>
+          <button class="del-btn" onclick="deleteCourse('${p.id}','${co.id}')">Remove</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:5px">
+          <strong>Audience:</strong> ${co.titles.length ? co.titles.join(', ') : '<span style="color:var(--text4)">All titles in mandated groups</span>'}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          ${co.phaseLabels.map(ph=>`<span style="font-size:10.5px;background:var(--ubl-tint);color:var(--ubl);padding:2px 8px;border-radius:10px;border:1px solid var(--border2)">${ph}</span>`).join('')}
+        </div>
+      </div>`).join('')
+    : `<div style="font-size:12px;color:var(--text4);padding:10px 0">No courses added yet — use Step 2 above.</div>`;
 
     return `<div class="prog-item">
       <div class="prog-item-head">
         <div>
           <div class="prog-item-name">${p.name}</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-            ${splitTag}
-            <span style="font-size:11px;color:var(--text3)">Added ${p.createdAt}</span>
+            ${segTag}
+            <span style="font-size:11px;color:var(--text3)">Category: ${p.category} · ${p.courses.length} course(s) · Added ${p.createdAt}</span>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end">
-          <span class="prog-item-cat">${p.category}</span>
+        <div style="display:flex;align-items:center;gap:7px">
           <button onclick="exportProgramReport('${p.id}')" style="padding:4px 12px;background:var(--ubl-tint);color:var(--ubl);border:1px solid var(--border2);border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif">⬇ Export</button>
           <button class="del-btn" onclick="deleteProgram('${p.id}')">Remove</button>
         </div>
       </div>
-      <div class="prog-meta">
-        <div class="prog-meta-item">
-          <div class="prog-meta-lbl">Target Groups</div>
-          <div class="prog-meta-val">${p.groups.length?p.groups.join(', '):'<span style="color:var(--text4)">All groups</span>'}</div>
-        </div>
-        <div class="prog-meta-item">
-          <div class="prog-meta-lbl">Functional Titles (${p.titles.length})</div>
-          <div class="prog-meta-val" style="max-height:60px;overflow-y:auto;font-size:11.5px">${p.titles.length?p.titles.map(t=>`<span style="display:inline-block;background:var(--bg2);border-radius:5px;padding:1px 7px;margin:1px;font-size:11px">${t}</span>`).join(''):'<span style="color:var(--text4)">All titles</span>'}</div>
-        </div>
-        <div class="prog-meta-item">
-          <div class="prog-meta-lbl">Notes</div>
-          <div class="prog-meta-val">${p.notes||'<span style="color:var(--text4)">—</span>'}</div>
-        </div>
-      </div>
-      ${p.phases.length
-        ? `<div style="margin-top:10px">
-            <div style="font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">Phases / Courses (${p.phases.length})</div>
-            <div class="prog-phases">${p.phases.map((ph,i)=>`<span class="phase-chip">Phase ${i+1}: ${ph}</span>`).join('')}</div>
-           </div>`
-        : '<div style="margin-top:8px;font-size:11px;color:var(--text4)">📌 No phases defined — standalone programme</div>'}
+      ${p.notes?`<div style="font-size:12px;color:var(--text3);margin:6px 0 10px">${p.notes}</div>`:''}
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text4);margin-bottom:8px">Courses (${p.courses.length})</div>
+      ${coursesHTML}
     </div>`;
   }).join('');
 }
 
-// ── Export program coverage report as Excel ──────────────────────────────
-function exportProgramReport(progId) {
-  const prog = getPrograms().find(p => p.id === progId);
-  if (!prog) return;
+// ════════════════════════════════════════════════════════
+// EXPORT PROGRAM REPORT
+// ════════════════════════════════════════════════════════
+function exportProgramReport(progId){
+  const prog = getPrograms().find(p=>p.id===progId);
+  if(!prog){ alert('Program not found.'); return; }
 
-  const hcRows = loadHcRows();
-  const trainingData = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
-  const resignedIds = new Set(JSON.parse(localStorage.getItem('ubl_resigned_ids') || '[]'));
-  const hcMeta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
+  const hcRows     = loadHcRows();
+  const trainingData = JSON.parse(localStorage.getItem('ubl_ld_data')||'[]');
+  const resignedIds  = new Set(JSON.parse(localStorage.getItem('ubl_resigned_ids')||'[]'));
+  const hcMeta     = JSON.parse(localStorage.getItem('ubl_hc_active')||'null');
 
-  if (!hcRows.length) {
-    alert('No headcount data found. Please upload headcount first.');
-    return;
-  }
-  // Use hcRows as hc.rows
-  const hc = { rows: hcRows, month: hcMeta?.month || '' };
+  if(!hcRows.length){ alert('No headcount data found. Please upload headcount first.'); return; }
 
-  const normStr = v => v == null ? '' : String(v).trim();
+  const ns   = v => String(v||'').trim();
+  const nid  = v => ns(v).replace(/\.0$/,'');
+  const idVars = id => { const s=nid(id); return [s, s.replace(/^0+/,'')||s, s.padStart(6,'0')]; };
 
-  // Build target audience from headcount
-  const targetEmps = hc.rows.filter(emp => {
-    const id = normStr(emp['Employee No.']);
-    if (!id || resignedIds.has(id)) return false;
-    const grpOk = !prog.groups.length || prog.groups.some(g => normStr(emp['Group']).toLowerCase() === g.toLowerCase());
-    const titleOk = !prog.titles.length || prog.titles.some(t => normStr(emp['Functional Title']).toLowerCase() === t.toLowerCase());
-    return grpOk && titleOk;
-  });
+  // Build HC lookup
+  const hcMap = new Map();
+  hcRows.forEach(e => { idVars(e['Employee No.']).forEach(v => hcMap.set(v, e)); });
+  const findHc = id => { for(const v of idVars(id)){ if(hcMap.has(v)) return hcMap.get(v); } return null; };
+  const inHc   = id => !!findHc(id);
 
-  // Filter training data to this program's category
-  const progTraining = trainingData.filter(r =>
-    normStr(r['Category']).toLowerCase() === prog.category.toLowerCase()
-  );
+  // All training data for this program
+  const progRows = trainingData.filter(r => ns(r['Category']).toLowerCase()===prog.category.toLowerCase());
 
-  // Build attended IDs per phase
-  const phaseAttended = {};
-  if (prog.phases.length) {
-    prog.phases.forEach(phase => {
-      const rows = progTraining.filter(r =>
-        normStr(r['Course Title']).toLowerCase().includes(phase.toLowerCase()) &&
-        normStr(r['Attendance Status']).toLowerCase().includes('attend')
-      );
-      phaseAttended[phase] = new Set(rows.map(r => normStr(r['Employee No.'])).filter(Boolean));
-    });
-    // Sequential: higher phase implies earlier phases
-    prog.phases.forEach((phase, i) => {
-      if (i > 0) {
-        phaseAttended[phase].forEach(id => {
-          for (let j = 0; j < i; j++) phaseAttended[prog.phases[j]].add(id);
-        });
-      }
-    });
-  } else {
-    const attended = progTraining.filter(r => normStr(r['Attendance Status']).toLowerCase().includes('attend'));
-    phaseAttended['_all'] = new Set(attended.map(r => normStr(r['Employee No.'])).filter(Boolean));
-  }
-
-  // Determine banking type per employee
-  const getEmpBanking = emp => {
-    const grp = normStr(emp['Group']).toLowerCase();
-    if (grp.includes('islamic banking')) return 'Islamic Banking';
-    if (grp.includes('branch banking'))  return 'Conventional';
-    return 'Head Office';
+  // Determine banking type
+  const getBanking = emp => {
+    const g = ns(emp['Group']).toLowerCase();
+    if(g.includes('islamic banking')) return 'Islamic Banking';
+    if(g.includes('branch banking'))  return 'Conventional';
+    return 'Other';
   };
 
-  // Build per-employee coverage row
-  const phaseKeys = prog.phases.length ? prog.phases : ['_all'];
-  const rows = targetEmps.map(emp => {
-    const id = normStr(emp['Employee No.']);
-    const banking = getEmpBanking(emp);
-    const row = {
-      'Employee No.'   : id,
-      'Employee Name'  : normStr(emp['Employee Name']),
-      'Grade'          : normStr(emp['Grade']),
-      'Group'          : normStr(emp['Group']),
-      'Functional Title': normStr(emp['Functional Title']),
-      'Banking Segment': banking,
-    };
-    phaseKeys.forEach(ph => {
-      const label = ph === '_all' ? 'Completed' : ph;
-      row[label] = phaseAttended[ph]?.has(id) ? 'Yes' : 'No';
-    });
-    // Last phase = overall status
-    const lastPhase = phaseKeys[phaseKeys.length - 1];
-    row['Overall Status'] = phaseAttended[lastPhase]?.has(id) ? 'Completed' : 'Pending';
-    return row;
-  });
-
-  // Sort: completed first, then by banking, then by grade
-  const gradeOrder = ['OG-4','OG-3','OG-2','OG-1','AVP','VP','SVP','EVP','SEVP','SEVP-II'];
-  rows.sort((a,b) => {
-    if (a['Overall Status'] !== b['Overall Status']) return a['Overall Status'] === 'Completed' ? -1 : 1;
-    if (a['Banking Segment'] !== b['Banking Segment']) return a['Banking Segment'].localeCompare(b['Banking Segment']);
-    return (gradeOrder.indexOf(a['Grade']) || 99) - (gradeOrder.indexOf(b['Grade']) || 99);
-  });
-
-  // Build summary sheet
-  const totalTarget = targetEmps.length;
-  const ibgEmps   = targetEmps.filter(e => getEmpBanking(e) === 'Islamic Banking');
-  const convEmps  = targetEmps.filter(e => getEmpBanking(e) === 'Conventional');
-
-  const completedAll = rows.filter(r => r['Overall Status'] === 'Completed').length;
-  const ibgCompleted  = rows.filter(r => r['Banking Segment'] === 'Islamic Banking' && r['Overall Status'] === 'Completed').length;
-  const convCompleted = rows.filter(r => r['Banking Segment'] === 'Conventional'   && r['Overall Status'] === 'Completed').length;
-
-  const pct = t => t > 0 ? Math.round((arguments[1]/t)*100)+'%' : '—';
-
-  const summary = [
-    ['UBL L&D Programme Coverage Report'],
+  // Build per-course completion data
+  const wb = XLSX.utils.book_new();
+  const summaryRows = [
+    ['UBL L&D — Programme Coverage Report'],
     ['Programme', prog.name],
-    ['Category', prog.category],
+    ['Category',  prog.category],
     ['Report Generated', new Date().toLocaleString('en-PK')],
-    ['Headcount Month', hc.month || '—'],
+    ['Headcount Month', hcMeta?.month||'—'],
     [],
-    ['OVERALL SUMMARY'],
-    ['Segment', 'Target', 'Completed', 'Pending', 'Coverage %'],
-    ['All',             totalTarget,   completedAll,            totalTarget-completedAll,           totalTarget>0?Math.round(completedAll/totalTarget*100)+'%':'—'],
-    ['Islamic Banking', ibgEmps.length, ibgCompleted,           ibgEmps.length-ibgCompleted,        ibgEmps.length>0?Math.round(ibgCompleted/ibgEmps.length*100)+'%':'—'],
-    ['Conventional',    convEmps.length, convCompleted,          convEmps.length-convCompleted,      convEmps.length>0?Math.round(convCompleted/convEmps.length*100)+'%':'—'],
   ];
 
-  // Phase summary rows
-  if (prog.phases.length) {
-    summary.push([]);
-    summary.push(['PHASE BREAKDOWN']);
-    summary.push(['Phase', 'Completed', 'Remaining', 'Coverage %']);
-    prog.phases.forEach(ph => {
-      const done = [...phaseAttended[ph]].filter(id => targetEmps.some(e => normStr(e['Employee No.']) === id)).length;
-      summary.push([ph, done, totalTarget-done, totalTarget>0?Math.round(done/totalTarget*100)+'%':'—']);
+  prog.courses.forEach(co => {
+    // Target = all HC employees whose Functional Title matches this course
+    const target = hcRows.filter(e => {
+      if(!inHc(e['Employee No.'])) return false;
+      if(!co.titles.length) return true;
+      return co.titles.some(t => ns(e['Functional Title']).toLowerCase()===t.toLowerCase());
     });
-  }
+    const targetIdSet = new Set(); target.forEach(e=>idVars(e['Employee No.']).forEach(v=>targetIdSet.add(v)));
+    const inTarget = id => idVars(id).some(v=>targetIdSet.has(v));
 
-  // Functional title summary
-  summary.push([]);
-  summary.push(['FUNCTIONAL TITLE BREAKDOWN']);
-  summary.push(['Functional Title', 'Target', 'Completed', 'Coverage %']);
-  const titleGroups = {};
-  targetEmps.forEach(e => {
-    const t = normStr(e['Functional Title']) || '#N/A';
-    if (!titleGroups[t]) titleGroups[t] = { target:0, done:0 };
-    titleGroups[t].target++;
-    const id = normStr(e['Employee No.']);
-    const lastPh = phaseKeys[phaseKeys.length-1];
-    if (phaseAttended[lastPh]?.has(id)) titleGroups[t].done++;
-  });
-  Object.entries(titleGroups).sort((a,b)=>b[1].target-a[1].target).forEach(([title,d])=>{
-    summary.push([title, d.target, d.done, d.target>0?Math.round(d.done/d.target*100)+'%':'—']);
-  });
+    // Phase completion sets
+    const phaseDone = {};
+    co.phaseLabels.forEach(ph => {
+      const phNorm = ph.toLowerCase().replace(/\s+/g,' ').trim();
+      const rows = progRows.filter(r => {
+        const ct = ns(r['Course Title']).toLowerCase().replace(/\s+/g,' ').trim();
+        return ct.includes(phNorm) && ns(r['Attendance Status']).toLowerCase().includes('attend');
+      });
+      phaseDone[ph] = new Set(rows.map(r=>nid(r['Employee No.'])).filter(id=>id&&inTarget(id)));
+    });
+    // Sequential propagation (backward)
+    for(let i=co.phaseLabels.length-1;i>=1;i--){
+      phaseDone[co.phaseLabels[i]].forEach(id=>{
+        for(let j=0;j<i;j++) phaseDone[co.phaseLabels[j]].add(id);
+      });
+    }
 
-  // Write Excel using SheetJS
-  const wb = XLSX.utils.book_new();
+    const p1done = phaseDone[co.phaseLabels[0]]||new Set();
+    const lastPh = co.phaseLabels[co.phaseLabels.length-1];
+    const allDone = phaseDone[lastPh]||new Set();
 
-  const wsSummary = XLSX.utils.aoa_to_sheet(summary);
-  wsSummary['!cols'] = [{wch:35},{wch:15},{wch:15},{wch:15},{wch:12}];
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Coverage Summary');
+    // Resigned: in training data for this course but not in HC
+    const trainedIds = new Set(progRows.filter(r=>{
+      const ct=ns(r['Course Title']).toLowerCase();
+      return ct.includes(co.name.toLowerCase());
+    }).map(r=>nid(r['Employee No.'])).filter(Boolean));
+    const resigned = [...trainedIds].filter(id=>!inHc(id));
 
-  const wsDetail = XLSX.utils.json_to_sheet(rows);
-  wsDetail['!cols'] = [{wch:14},{wch:28},{wch:8},{wch:28},{wch:30},{wch:18},...phaseKeys.map(()=>({wch:12})),{wch:14}];
-  XLSX.utils.book_append_sheet(wb, wsDetail, 'Employee Detail');
+    // Additional participants: attended but not in target audience
+    const allAttendedIds = new Set(progRows.filter(r=>{
+      const ct=ns(r['Course Title']).toLowerCase();
+      return ct.includes(co.name.toLowerCase()) && ns(r['Attendance Status']).toLowerCase().includes('attend');
+    }).map(r=>nid(r['Employee No.'])).filter(Boolean));
+    const additionalIds = [...allAttendedIds].filter(id=>!inTarget(id)&&inHc(id));
 
-  // Pending only sheet
-  const pendingRows = rows.filter(r => r['Overall Status'] === 'Pending');
-  if (pendingRows.length) {
-    const wsPending = XLSX.utils.json_to_sheet(pendingRows);
-    wsPending['!cols'] = wsDetail['!cols'];
-    XLSX.utils.book_append_sheet(wb, wsPending, 'Pending Employees');
-  }
+    // Summary rows for this course
+    summaryRows.push([`COURSE: ${co.name}`]);
+    summaryRows.push(['Target Audience (HC)', target.length]);
+    summaryRows.push(['Started (Phase I)', p1done.size, `${target.length>0?Math.round(p1done.size/target.length*100):0}%`]);
+    summaryRows.push(['Fully Completed (all phases)', allDone.size, `${target.length>0?Math.round(allDone.size/target.length*100):0}%`]);
+    summaryRows.push(['Resigned / Left HC', resigned.length]);
+    summaryRows.push(['Additional Participants (outside target)', additionalIds.length]);
+    co.phaseLabels.forEach(ph => {
+      const d = phaseDone[ph]||new Set();
+      summaryRows.push([ph, d.size, `${target.length>0?Math.round(d.size/target.length*100):0}%`]);
+    });
+    summaryRows.push([]);
 
-  // Resigned sheet — appeared in training data but not in current headcount
-  const allTrainingIds = [...new Set(
-    trainingData
-      .filter(r => normStr(r['Category']).toLowerCase() === prog.category.toLowerCase())
-      .map(r => String(r['Employee No.'] || '').trim().replace(/\.0$/, ''))
-      .filter(Boolean)
-  )];
-  const currentHcIdSet = new Set(
-    hcRows.map(e => String(e['Employee No.'] || '').trim().replace(/\.0$/, '')).filter(Boolean)
-  );
-  const resignedFromProg = allTrainingIds
-    .filter(id => !currentHcIdSet.has(id) && !currentHcIdSet.has(id.replace(/^0+/,'')) && !currentHcIdSet.has(id.padStart(6,'0')))
-    .map(id => {
-      // Find their last training record
-      const records = trainingData.filter(r =>
-        normStr(r['Category']).toLowerCase() === prog.category.toLowerCase() &&
-        String(r['Employee No.'] || '').trim().replace(/\.0$/,'') === id
-      );
-      const last = records[records.length - 1] || {};
-      return {
+    // Detail sheet per course
+    const detailRows = target.map(emp => {
+      const id = nid(emp['Employee No.']);
+      const row = {
         'Employee No.': id,
-        'Employee Name': normStr(last['Employee Name']) || '—',
-        'Grade': normStr(last['Grade']) || '—',
-        'Group': normStr(last['Group']) || '—',
-        'Functional Title': normStr(last['Functional Title']) || '—',
-        'Last Training': normStr(last['Course Title']) || '—',
-        'Last Training Month': normStr(last['_uploadMonth']) || '—',
-        'Status': 'Resigned / Not in Headcount'
+        'Employee Name': ns(emp['Employee Name']),
+        'Grade': ns(emp['Grade']),
+        'Group': ns(emp['Group']),
+        'Functional Title': ns(emp['Functional Title']),
+        'Banking': getBanking(emp),
       };
+      co.phaseLabels.forEach(ph => {
+        row[ph] = (phaseDone[ph]||new Set()).has(id) ? 'Completed' : 'Not Yet';
+      });
+      const phases_done = co.phaseLabels.filter(ph=>(phaseDone[ph]||new Set()).has(id)).length;
+      row['Phases Completed'] = `${phases_done}/${co.phaseLabels.length}`;
+      row['Status'] = phases_done===0 ? 'Not Started' : phases_done===co.phaseLabels.length ? 'Fully Completed' : `In Progress (Phase ${phases_done} done)`;
+      return row;
     });
-  if (resignedFromProg.length) {
-    summary.splice(7, 0, ['Resigned (Trained but left)', resignedFromProg.length, '—', '—', '—']);
-    const wsResigned = XLSX.utils.json_to_sheet(resignedFromProg);
-    wsResigned['!cols'] = [{wch:14},{wch:28},{wch:8},{wch:28},{wch:30},{wch:35},{wch:20},{wch:25}];
-    XLSX.utils.book_append_sheet(wb, wsResigned, 'Resigned Employees');
-  }
+    detailRows.sort((a,b)=>{
+      const so={'Fully Completed':0,'In Progress':1,'Not Started':2};
+      const sa = Object.keys(so).find(k=>a['Status'].startsWith(k))||'Not Started';
+      const sb = Object.keys(so).find(k=>b['Status'].startsWith(k))||'Not Started';
+      return (so[sa]||2)-(so[sb]||2);
+    });
 
-  const filename = `${prog.name.replace(/[^a-z0-9]/gi,'_')}_Coverage_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
-  XLSX.writeFile(wb, filename);
+    const ws = XLSX.utils.json_to_sheet(detailRows);
+    const sheetName = co.name.slice(0,28).replace(/[:\/?*\[\]]/g,'');
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+    // Resigned sheet
+    if(resigned.length){
+      const resignedSheet = resigned.map(id=>{
+        const last = progRows.filter(r=>nid(r['Employee No.'])===id).pop()||{};
+        return {'Employee No.':id,'Last Name':ns(last['Employee Name']),'Last Course':ns(last['Course Title']),'Last Month':ns(last['_uploadMonth']),'Status':'Resigned/Left'};
+      });
+      const wsR = XLSX.utils.json_to_sheet(resignedSheet);
+      XLSX.utils.book_append_sheet(wb, wsR, `${sheetName.slice(0,20)}_Resigned`);
+    }
+
+    // Additional participants sheet
+    if(additionalIds.length){
+      const addRows = additionalIds.map(id=>{
+        const emp = findHc(id)||{};
+        const phases_done = co.phaseLabels.filter(ph=>(phaseDone[ph]||new Set()).has(id)).length;
+        return {'Employee No.':id,'Name':ns(emp['Employee Name']),'Grade':ns(emp['Grade']),'Group':ns(emp['Group']),'Functional Title':ns(emp['Functional Title']),'Banking':getBanking(emp),'Phases Completed':`${phases_done}/${co.phaseLabels.length}`};
+      });
+      const wsA = XLSX.utils.json_to_sheet(addRows);
+      XLSX.utils.book_append_sheet(wb, wsA, `${sheetName.slice(0,20)}_Additional`);
+    }
+  });
+
+  // Summary sheet (first)
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+  wsSummary['!cols'] = [{wch:45},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Programme Summary');
+  // Move summary to front
+  wb.SheetNames = ['Programme Summary', ...wb.SheetNames.filter(n=>n!=='Programme Summary')];
+
+  const fname = `${prog.name.replace(/[^a-z0-9]/gi,'_')}_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, fname);
 }
 
 // ════════════════════════════════════════════════════════
