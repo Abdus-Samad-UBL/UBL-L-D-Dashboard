@@ -1072,9 +1072,28 @@ function sortMonths(months) {
 // ════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════
+// ── Load ALL training data from per-month localStorage keys ──────────────
+// Supports new per-month format (ubl_td_index + ubl_td_*) AND legacy blob (ubl_ld_data)
+function loadAllTrainingData() {
+  const rows = [];
+  // New per-month format
+  try {
+    const idx = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
+    idx.forEach(m => {
+      try { rows.push(...JSON.parse(localStorage.getItem(m.key) || '[]')); } catch(e) {}
+    });
+  } catch(e) {}
+  // Legacy single-blob fallback
+  try {
+    const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
+    if (legacy.length) rows.push(...legacy);
+  } catch(e) {}
+  return rows;
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-  const raw = localStorage.getItem('ubl_ld_data');
-  if (raw) { try { allData = JSON.parse(raw); if (allData.length) initDashboard(); } catch(e){} }
+  allData = loadAllTrainingData();
+  if (allData.length) initDashboard();
 });
 
 function initDashboard() {
