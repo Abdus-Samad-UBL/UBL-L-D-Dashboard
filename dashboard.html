@@ -1761,13 +1761,21 @@ function buildProgCard(prog, hc, resigned, idx) {
   // An employee "completed" the program if they completed all phases of their relevant course
   const programStarted  = new Set();
   const programFinished = new Set();
-  courseResults.forEach(({started, finished}) => {
-    started.forEach(id  => programStarted.add(id));
-    finished.forEach(id => programFinished.add(id));
+  courseResults.forEach(({phaseDoneAll, labels}) => {
+    // Use all attendees (target + additional) for overall program stats
+    const s = phaseDoneAll[labels[0]] || new Set();
+    const f = phaseDoneAll[labels[labels.length-1]] || new Set();
+    s.forEach(id => programStarted.add(id));
+    f.forEach(id => programFinished.add(id));
   });
 
-  const totalTarget   = programTargetSet.size;
-  const totalStarted  = programStarted.size;
+  // Build total attendees across all courses (all phases combined, any person)
+  const allProgAttendees = new Set();
+  courseResults.forEach(({phaseDoneAll, labels}) => {
+    (phaseDoneAll[labels[0]]||new Set()).forEach(id => allProgAttendees.add(id));
+  });
+  const totalTarget   = programTargetSet.size;   // HC-defined target
+  const totalStarted  = allProgAttendees.size;    // everyone who attended any course
   const totalFinished = programFinished.size;
   const totalPct      = totalTarget > 0 ? Math.round(totalStarted/totalTarget*100) : 0;
   const fullPct       = totalTarget > 0 ? Math.round(totalFinished/totalTarget*100) : 0;
@@ -1822,9 +1830,16 @@ function buildProgCard(prog, hc, resigned, idx) {
 
   // ── Per-course breakdown with phase tabs ─────────────────────────────────
   const coursesHTML = courseResults.map(({co, coTarget, phaseDone, phaseDoneAll, labels, started, finished, coAllAttended, totalStartedAll}) => {
-    const ct     = coTarget.length;
-    const cs     = started.size;
-    const cf     = finished.size;
+    // Use ALL attendees (target + additional) for progress counts
+    const startedAll  = phaseDoneAll[labels[0]] || new Set();
+    const finishedAll = phaseDoneAll[labels[labels.length-1]] || new Set();
+    // ct_hc  = headcount-defined target audience (used for pending list)
+    // ct_all = everyone who ever attended any phase (used for progress %)
+    const ct_hc  = coTarget.length;
+    const ct_all = startedAll.size > 0 ? startedAll.size : 1;
+    const ct     = ct_all;  // denominator for % is total attendees
+    const cs     = startedAll.size;
+    const cf     = finishedAll.size;
     const cpct   = ct>0?Math.round(cs/ct*100):0;
     const cFpct  = ct>0?Math.round(cf/ct*100):0;
     const cColor = cpct>=80?'#0a8f5c':cpct>=50?'#c47500':'#0175C0';
@@ -1847,17 +1862,17 @@ function buildProgCard(prog, hc, resigned, idx) {
     // "All phases" view — bars for each phase
     const allPhasesView = `<div id="${cid}-view-all">
       ${labels.map((ph,i) => {
-        const done    = phaseDoneAll[ph]||new Set();   // total including additional
-        const doneT   = phaseDone[ph]||new Set();      // target only
-        const pct     = ct>0?Math.round(doneT.size/ct*100):0;
-        const addCnt  = done.size - doneT.size;
+        const done  = phaseDoneAll[ph]||new Set();   // everyone who attended
+        const doneT = phaseDone[ph]||new Set();        // target audience subset
+        const pct   = ct>0?Math.round(done.size/ct*100):0;
+        const addCnt = done.size - doneT.size;
         return `<div style="margin-bottom:8px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
             <div style="font-size:12px;font-weight:600;color:var(--text2)">Phase ${i+1}<span style="font-size:10.5px;font-weight:400;color:var(--text4);margin-left:6px">${ph.replace(co.name,'').trim()}</span></div>
             <div style="display:flex;align-items:center;gap:10px">
               <span style="font-size:11px;font-weight:700;color:${cColor}">${pct}%</span>
-              <span style="font-size:10.5px;color:var(--text4)">${doneT.size}/${ct} target</span>
-              ${addCnt>0?`<span style="font-size:10px;color:var(--amber)">+${addCnt} additional</span>`:''}
+              <span style="font-size:10.5px;color:var(--text4)">${done.size}/${ct}</span>
+              ${doneT.size<done.size?`<span style="font-size:10px;color:var(--text4)">(${doneT.size} target + ${done.size-doneT.size} additional)</span>`:''}
             </div>
           </div>
           <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
@@ -1871,18 +1886,20 @@ function buildProgCard(prog, hc, resigned, idx) {
     const singlePhaseViews = labels.map((ph,i) => {
       const done    = phaseDoneAll[ph]||new Set();
       const doneT   = phaseDone[ph]||new Set();
-      const notDone = coTarget.filter(e => !idVars(nid(e['Employee No.'])).some(v=>doneT.has(v)));
+      const addCntPh = done.size - doneT.size;
+      // Not done = target audience who haven't done this phase (additional are already counted)
+      const notDone = coTarget.filter(e => !idVars(nid(e['Employee No.'])).some(v=>done.has(v)));
       return `<div id="${cid}-view-${i}" style="display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
           <div style="background:var(--green-t,#ecfdf5);border:1px solid #9de0c0;border-radius:9px;padding:10px 14px">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#065f46;font-weight:700;margin-bottom:4px">✓ Completed Phase ${i+1}</div>
-            <div style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#065f46">${doneT.size}</div>
-            <div style="font-size:10.5px;color:#065f46">${ct>0?Math.round(doneT.size/ct*100):0}% of target${done.size-doneT.size>0?` · +${done.size-doneT.size} additional`:''}</div>
+            <div style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#065f46">${done.size}</div>
+            <div style="font-size:10.5px;color:#065f46">${ct>0?Math.round(done.size/ct*100):0}% of all${addCntPh>0?` (${doneT.size} target · ${addCntPh} additional)`:''}</div>
           </div>
           <div style="background:var(--amber-t,#fff8ec);border:1px solid #fcd34d;border-radius:9px;padding:10px 14px">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#92400e;font-weight:700;margin-bottom:4px">⏳ Yet to Complete</div>
             <div style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#b45309">${notDone.length}</div>
-            <div style="font-size:10.5px;color:#b45309">${ct>0?Math.round(notDone.length/ct*100):0}% of target remaining</div>
+            <div style="font-size:10.5px;color:#b45309">${ct>0?Math.round(notDone.length/ct*100):0}% of target still pending</div>
           </div>
         </div>
         ${notDone.length ? `
@@ -1909,7 +1926,7 @@ function buildProgCard(prog, hc, resigned, idx) {
     }).join('');
 
     const addLine = coAllAttended.size>0
-      ? `<div style="font-size:10.5px;color:var(--amber);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">ℹ ${coAllAttended.size} additional participants attended (outside defined target audience)</div>` : '';
+      ? `<div style="font-size:10.5px;color:var(--text3);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">ℹ Includes ${coAllAttended.size} participants outside the defined target audience — counted in progress above</div>` : '';
 
     return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:9px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
@@ -1921,7 +1938,7 @@ function buildProgCard(prog, hc, resigned, idx) {
         </div>
         <div style="text-align:right;flex-shrink:0;margin-left:12px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:${cColor}">${cpct}%</div>
-          <div style="font-size:10px;color:var(--text4)">started&nbsp;·&nbsp;${cFpct}% fully done</div>
+          <div style="font-size:10px;color:var(--text4)">total incl. additional&nbsp;·&nbsp;${cFpct}% fully done</div>
         </div>
       </div>
       ${phaseTabsHTML}
@@ -1933,10 +1950,11 @@ function buildProgCard(prog, hc, resigned, idx) {
 
   // ── Pending list (program-level — not yet started any course) ────────────
   const pendingId   = `pending-${prog.id}`;
+  // Pending = in HC target audience but hasn't attended any course under this program
   const pendingEmps = hc.rows.filter(e => {
     const id = nid(e['Employee No.']);
     if(!idVars(id).some(v=>programTargetSet.has(v))) return false;
-    return !idVars(id).some(v=>programStarted.has(v));
+    return !idVars(id).some(v=>allProgAttendees.has(v));
   });
 
   return `<div class="pp-card" style="animation-delay:${idx*0.07}s">
@@ -1958,13 +1976,13 @@ function buildProgCard(prog, hc, resigned, idx) {
         </svg>
         <div class="pp-ring-text">
           <div class="pp-ring-pct" style="color:${ringColor}">${totalPct}%</div>
-          <div class="pp-ring-lbl">Started</div>
+          <div class="pp-ring-lbl">Attended</div>
         </div>
       </div>
       <div class="pp-summary">
         <div class="pp-summary-row">
           <div class="pp-stat total"><div class="pp-stat-v">${totalTarget.toLocaleString()}</div><div class="pp-stat-l">Target (HC)</div></div>
-          <div class="pp-stat done"><div class="pp-stat-v">${totalStarted.toLocaleString()}</div><div class="pp-stat-l">Started</div></div>
+          <div class="pp-stat done"><div class="pp-stat-v">${totalStarted.toLocaleString()}</div><div class="pp-stat-l">Attended</div></div>
           <div class="pp-stat done" style="--pp-col:#065f46"><div class="pp-stat-v" style="color:#065f46">${totalFinished.toLocaleString()}</div><div class="pp-stat-l">Fully Done</div></div>
           <div class="pp-stat pend"><div class="pp-stat-v">${pendingEmps.length.toLocaleString()}</div><div class="pp-stat-l">Not Started</div></div>
           <div class="pp-stat" style="--pp-col:#d03030"><div class="pp-stat-v" style="color:#d03030">${progResignedIds.size.toLocaleString()}</div><div class="pp-stat-l">Resigned</div></div>
