@@ -1072,13 +1072,27 @@ function sortMonths(months) {
 // Supports new per-month format (ubl_td_index + ubl_td_*) AND legacy blob (ubl_ld_data)
 function loadAllTrainingData() {
   const rows = [];
-  // New per-month format
+  const seenKeys = new Set();
+  // Primary: index-guided read
   try {
     const idx = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
     idx.forEach(m => {
-      try { rows.push(...JSON.parse(localStorage.getItem(m.key) || '[]')); } catch(e) {}
+      try {
+        rows.push(...JSON.parse(localStorage.getItem(m.key) || '[]'));
+        seenKeys.add(m.key);
+      } catch(e) {}
     });
   } catch(e) {}
+  // Secondary: full scan — catches any month the index missed
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index' && !seenKeys.has(k)) {
+      try {
+        const chunk = JSON.parse(localStorage.getItem(k) || '[]');
+        if (chunk.length) rows.push(...chunk);
+      } catch(e) {}
+    }
+  }
   // Legacy single-blob fallback
   try {
     const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
