@@ -529,7 +529,7 @@ async function syncTrainingInChunks(label, rows) {
   try {
     while (sent < total) {
       const chunk = rows.slice(sent, sent + CHUNK);
-      await syncToSheets({
+      const result = await syncToSheets({
         action: 'upload',
         monthLabel: label,
         rows: chunk,
@@ -538,12 +538,15 @@ async function syncTrainingInChunks(label, rows) {
         totalRows: total,
         uploadedBy: 'Admin'
       });
+      if (!result.success) {
+        return { success: false, error: result.error || 'Chunk failed at row ' + sent };
+      }
       sent += CHUNK;
       if (sent < total) await new Promise(r => setTimeout(r, 150));
     }
-    console.log(`Training data synced: ${total} rows in ${Math.ceil(total/CHUNK)} chunks`);
+    return { success: true };
   } catch(e) {
-    console.warn('Training Sheets sync failed (data saved locally):', e.message);
+    return { success: false, error: e.message };
   }
 }
 
@@ -552,33 +555,29 @@ async function syncHeadcountInChunks(label, rows, resignedIds) {
   const total = rows.length;
   let sent = 0;
   let isFirst = true;
-
   try {
     while (sent < total) {
       const chunk = rows.slice(sent, sent + CHUNK);
-      const payload = {
+      const result = await syncToSheets({
         action: 'uploadHeadcount',
         monthLabel: label,
         rows: chunk,
-        resignedIds: isFirst ? resignedIds : [],  // only send resigned on first chunk
+        resignedIds: isFirst ? resignedIds : [],
         chunkIndex: Math.floor(sent / CHUNK),
         isFirstChunk: isFirst,
         isFinalChunk: (sent + CHUNK) >= total,
         totalRows: total
-      };
-      const result = await syncToSheets(payload);
+      });
       if (!result || !result.success) {
-        console.warn(`HC chunk ${payload.chunkIndex} sync issue:`, result && result.error);
+        return { success: false, error: result ? result.error : 'No response from server' };
       }
       sent += CHUNK;
       isFirst = false;
-
-      // Small delay between chunks to avoid rate limiting
       if (sent < total) await new Promise(r => setTimeout(r, 200));
     }
-    console.log(`Headcount synced to Sheets: ${total} rows in ${Math.ceil(total/CHUNK)} chunks`);
+    return { success: true };
   } catch(e) {
-    console.warn('Headcount Sheets sync failed (data saved locally):', e.message);
+    return { success: false, error: e.message };
   }
 }
 
@@ -597,12 +596,20 @@ async function syncToSheets(payload) {
   const url = getAppsUrl();
   if (!url) return { success: false, error: 'No URL configured' };
   try {
+    // NOTE: Do NOT set Content-Type: application/json — Google Apps Script
+    // redirects such requests to an auth page. Sending as text/plain works.
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
       body: JSON.stringify(payload)
     });
-    return await res.json();
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) {
+      // Response was HTML (auth redirect) or other non-JSON
+      console.warn('Apps Script returned non-JSON:', text.slice(0, 200));
+      return { success: false, error: 'Non-JSON response — check deployment permissions' };
+    }
   } catch(e) {
     console.warn('Apps Script sync failed:', e.message);
     return { success: false, error: e.message };
@@ -830,14 +837,21 @@ async function processTrainingData(){
   meta.push({ month:label, count:tagged.length, uploadedAt:new Date().toLocaleString('en-PK'), courses, clusters });
   localStorage.setItem('ubl_ld_meta', JSON.stringify(meta));
 
-  // ── Sync to Google Sheets in chunks (background, non-blocking) ───────────
-  syncTrainingInChunks(label, tagged);
+  // ── Sync to Google Sheets ─────────────────────────────────────────────────
+  showStatus('trainingStatus','info','Syncing to Google Sheets…',
+    `Sending ${tagged.length.toLocaleString()} records in chunks. Please wait…`);
 
-  // ── Done ─────────────────────────────────────────────────────────────────
+  const syncResult = await syncTrainingInChunks(label, tagged);
+
   btn.disabled=false;
   btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save to Repository & Update Dashboard';
-  showStatus('trainingStatus','ok','✓ Uploaded Successfully',
-    `${tagged.length.toLocaleString()} records for <strong>${label}</strong> syncing to Google Sheets. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
+  if (syncResult.success) {
+    showStatus('trainingStatus','ok','✓ Uploaded to Google Sheets',
+      `${tagged.length.toLocaleString()} records for <strong>${label}</strong> saved to Google Sheets. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
+  } else {
+    showStatus('trainingStatus','err','✗ Upload to Google Sheets Failed',
+      `Error: ${syncResult.error}<br>Common fix: In Apps Script → Deploy → Manage Deployments, make sure <strong>Who has access = Anyone</strong> (not 'Anyone with Google account').`);
+  }
   refreshTrainingRepo();
   parsedTrainingRows=[];
   document.getElementById('trainingPreviewWrap').style.display='none';
@@ -1101,8 +1115,13 @@ async function processHeadcount(){
   hcHistory.push({ month:label, total:parsedHcRows.length, uploadedAt:new Date().toLocaleString('en-PK'), added:diff.added.length, left:diff.left.length });
   localStorage.setItem('ubl_hc_history',JSON.stringify(hcHistory));
 
-  // Sync headcount to Sheets in chunks (30k rows would timeout in one call)
-  syncHeadcountInChunks(label, parsedHcRows, [...resignedIds]);
+  // Sync headcount to Sheets
+  showStatus('hcStatus','info','Syncing to Google Sheets…',`Sending ${parsedHcRows.length.toLocaleString()} employees in chunks…`);
+  const hcSyncResult = await syncHeadcountInChunks(label, parsedHcRows, [...resignedIds]);
+  if (!hcSyncResult.success) {
+    showStatus('hcStatus','warn','⚠ Partial — local save OK but Sheets sync failed',
+      `Error: ${hcSyncResult.error}<br>Check Apps Script deployment permissions.`);
+  }
 
   setTimeout(()=>{
     btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save Headcount & Flag Resigned Employees';
