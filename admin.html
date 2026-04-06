@@ -229,6 +229,7 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
     <div class="stat-card"><div class="stat-val" id="repoRecords">0</div><div class="stat-lbl">Total Records</div></div>
     <div class="stat-card"><div class="stat-val" id="repoLastUpload">—</div><div class="stat-lbl">Last Upload</div></div>
     <div class="stat-card"><div class="stat-val" id="repoCourses">0</div><div class="stat-lbl">Unique Courses</div></div>
+    <div class="stat-card" id="storageCard"><div class="stat-val" id="repoStorage" style="font-size:18px">—</div><div class="stat-lbl">Storage Used</div></div>
   </div>
 
   <div class="sec">Upload New Monthly File</div>
@@ -519,37 +520,7 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 // ════════════════════════════════════════════════════════
 // ── Load ALL training data from per-month localStorage keys ──────────────
 // Merges per-month keys (new format) + legacy blob (old format) seamlessly
-function loadAllTrainingData() {
-  const rows = [];
-  const seenKeys = new Set();
-  // Primary: read from index
-  try {
-    const tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
-    tdIndex.forEach(m => {
-      try {
-        const chunk = JSON.parse(localStorage.getItem(m.key) || '[]');
-        rows.push(...chunk);
-        seenKeys.add(m.key);
-      } catch(e) {}
-    });
-  } catch(e) {}
-  // Secondary: scan ALL ubl_td_ keys — catches orphaned months the index missed
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index' && !seenKeys.has(k)) {
-      try {
-        const chunk = JSON.parse(localStorage.getItem(k) || '[]');
-        if (chunk.length) rows.push(...chunk);
-      } catch(e) {}
-    }
-  }
-  // Legacy single-blob fallback
-  try {
-    const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
-    if (legacy.length) rows.push(...legacy);
-  } catch(e) {}
-  return rows;
-}
+// Training data loaded from Google Sheets — see dashboard.html
 
 async function syncTrainingInChunks(label, rows) {
   const CHUNK = 500;
@@ -835,10 +806,12 @@ async function processTrainingData(){
 
   // ── Save to localStorage ──────────────────────────────────────────────────
   // Strip each row to only the columns needed by the dashboard to reduce size
-  const KEEP = ['Region','Employee No.','Employee Name','Functional Title','Grade','Group',
-                'POP Code','Cluster','Attendance Status','Course Title','Training Type',
-                'Test Score','Trainer Name','From','To','Duration','Training Venue','Category',
-                '_month','_quarter','_uploadMonth','_uploadedAt'];
+  // Minimal fields for localStorage — keeps each row ~120 bytes vs ~300 bytes
+  // Full data is in the uploaded Excel; localStorage is only for dashboard display
+  const KEEP = ['Region','Employee No.','Functional Title','Grade','Group',
+                'Cluster','Attendance Status','Course Title','Training Type',
+                'Test Score','Duration','Training Venue','Category',
+                '_month','_quarter','_uploadMonth'];
 
   const slim = tagged.map(r => {
     const s = {};
@@ -846,44 +819,8 @@ async function processTrainingData(){
     return s;
   });
 
-  // Store each month's data in its own localStorage key
-  const monthKey = 'ubl_td_' + label.replace(/[^a-z0-9]/gi, '_');
-
-  // Ensure all values are plain strings/numbers — no Date objects or undefined
-  const safeSlim = slim.map(row => {
-    const safe = {};
-    Object.keys(row).forEach(k => {
-      const v = row[k];
-      if (v === null || v === undefined) { safe[k] = ''; }
-      else if (v instanceof Date) { safe[k] = v.toISOString(); }
-      else if (typeof v === 'object') { safe[k] = String(v); }
-      else { safe[k] = v; }
-    });
-    return safe;
-  });
-
-  let saveFailed = false;
-  try {
-    const serialised = JSON.stringify(safeSlim);
-    localStorage.setItem(monthKey, serialised);
-    console.log(`Saved ${safeSlim.length} rows to ${monthKey} (${(serialised.length/1024).toFixed(1)} KB)`);
-  } catch(e) {
-    saveFailed = true;
-    console.error('localStorage save failed for', label, ':', e.message);
-    showStatus('trainingStatus','err','Storage Error',
-      `Could not save to browser storage: ${e.message}. Try clearing old months first.`);
-  }
-
-  // Update the month index — always upsert (remove old entry, add new)
-  let tdIndex = [];
-  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
-  // Remove any existing entry for this label (handles re-uploads cleanly)
-  tdIndex = tdIndex.filter(m => m.label !== label);
-  tdIndex.push({ label, key: monthKey });
-  localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex));
-
-  // Remove legacy single-blob key if it exists (migration)
-  localStorage.removeItem('ubl_ld_data');
+  // Data is stored in Google Sheets (no localStorage for training data)
+  // Just update the meta so the repository table shows the upload
 
   // Save meta
   let meta = []; try { meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]'); } catch(e) {}
@@ -899,8 +836,8 @@ async function processTrainingData(){
   // ── Done ─────────────────────────────────────────────────────────────────
   btn.disabled=false;
   btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3"/></svg> Save to Repository & Update Dashboard';
-  showStatus('trainingStatus','ok','✓ Saved Successfully',
-    `${tagged.length.toLocaleString()} records saved locally for <strong>${label}</strong>. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
+  showStatus('trainingStatus','ok','✓ Uploaded Successfully',
+    `${tagged.length.toLocaleString()} records for <strong>${label}</strong> syncing to Google Sheets. <a href="dashboard.html" style="color:var(--ubl);font-weight:600">View Dashboard →</a>`);
   refreshTrainingRepo();
   parsedTrainingRows=[];
   document.getElementById('trainingPreviewWrap').style.display='none';
@@ -911,16 +848,30 @@ async function processTrainingData(){
 
 function refreshTrainingRepo(){
   let meta=[],total=0,courses=0;
+  // Load meta from localStorage (set after upload)
   try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
-  try{
-    const rows = loadAllTrainingData();
-    total = rows.length;
-    courses = new Set(rows.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
-  }catch(e){}
+  // Compute totals from meta (no local data)
+  total = meta.reduce((s,m)=>s+(m.count||0),0);
+  courses = 0; // not easily available from meta alone
   document.getElementById('repoMonths').textContent=meta.length;
   document.getElementById('repoRecords').textContent=total.toLocaleString();
   document.getElementById('repoLastUpload').textContent=meta.length?meta[meta.length-1].month:'—';
   document.getElementById('repoCourses').textContent=courses.toLocaleString();
+  // Show storage usage
+  try {
+    let used = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k) used += (localStorage.getItem(k)||'').length * 2; // UTF-16
+    }
+    const usedMB = (used / 1024 / 1024).toFixed(2);
+    const pct = Math.round(used / (5*1024*1024) * 100);
+    const col = pct > 85 ? 'var(--red)' : pct > 65 ? 'var(--amber)' : 'var(--ubl)';
+    const el = document.getElementById('repoStorage');
+    if (el) { el.textContent = usedMB + ' MB'; el.style.color = col; }
+    const card = document.getElementById('storageCard');
+    if (card) card.title = `${pct}% of ~5MB browser limit used`;
+  } catch(e) {}
   const tbody=document.getElementById('trainingRepoBody');
   const empty=document.getElementById('trainingRepoEmpty');
   if(!meta.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
@@ -938,16 +889,7 @@ function refreshTrainingRepo(){
 
 function deleteTrainingMonth(month){
   if(!confirm(`Delete all training data for "${month}"?`)) return;
-  // Remove per-month key
-  const monthKey = 'ubl_td_' + month.replace(/[^a-z0-9]/gi, '_');
-  localStorage.removeItem(monthKey);
-  // Update index
-  let tdIndex = [];
-  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
-  localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex.filter(m => m.label !== month)));
-  // Also clean legacy blob
-  let d=[]; try{ d=JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); }catch(e){}
-  if(d.length) localStorage.setItem('ubl_ld_data',JSON.stringify(d.filter(r=>r._uploadMonth!==month)));
+  // localStorage training data removed — data lives in Sheets
   let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
   localStorage.setItem('ubl_ld_meta',JSON.stringify(meta.filter(m=>m.month!==month)));
   syncToSheets({ action:'delete', monthLabel:month });
@@ -1084,11 +1026,21 @@ async function processHeadcount(){
   // Remove from resigned if they re-joined
   diff.added.forEach(id=>resignedIds.delete(id));
 
-  // ── Strip to essential fields only ───────────────────────────────────────
+  // ── Strip headcount to minimum 3 fields (~60 bytes/row vs 150 bytes) ─────
+  // Employee No. + Group → banking type detection
+  // Functional Title → course audience matching
+  // Grade + Name → display only, added if space allows
   const ESSENTIAL = ['Employee No.','Employee Name','Grade','Group','Functional Title'];
+  // Estimate size with all 5 fields
+  const testRow = JSON.stringify({'Employee No.':'123456','Employee Name':'Muhammad Abdullah Khan','Grade':'OG-1','Group':'Branch Banking Group','Functional Title':'Branch Manager'});
+  const estSize5 = parsedHcRows.length * testRow.length;
+  // If > 1.5MB, drop Name and Grade to save space
+  const ESSENTIAL_SLIM = estSize5 > 1.5*1024*1024
+    ? ['Employee No.','Group','Functional Title']
+    : ESSENTIAL;
   const slimRows = parsedHcRows.map(r => {
     const slim = {};
-    ESSENTIAL.forEach(k => { slim[k] = r[k] || ''; });
+    ESSENTIAL_SLIM.forEach(k => { slim[k] = r[k] || ''; });
     return slim;
   });
 
@@ -1653,12 +1605,6 @@ function repairIndex() {
 
 function clearTrainingData(){
   if(!confirm('Clear ALL training data?')) return;
-  // Clear all per-month keys
-  let tdIndex = [];
-  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
-  tdIndex.forEach(m => localStorage.removeItem(m.key));
-  localStorage.removeItem('ubl_td_index');
-  localStorage.removeItem('ubl_ld_data');
   localStorage.removeItem('ubl_ld_meta');
   syncToSheets({action:'clearAll'});
   refreshTrainingRepo();
