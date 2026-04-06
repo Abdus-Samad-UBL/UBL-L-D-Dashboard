@@ -880,8 +880,8 @@ canvas { display: block; }
           <span class="kpi-badge b-flat">—</span>
         </div>
         <div class="kpi-num" id="kpi-hours">0</div>
-        <div class="kpi-lbl">Training Days</div>
-        <div class="kpi-foot" id="kpi4sub">Total training days delivered</div>
+        <div class="kpi-lbl">Training Hours</div>
+        <div class="kpi-foot" id="kpi4sub">Total training hours delivered</div>
       </div>
       <div class="kpi" style="--k-color:#0175C0;--k-bg:var(--ubl-tint)">
         <div class="kpi-head">
@@ -894,14 +894,10 @@ canvas { display: block; }
       </div>
     </div>
 
-    <div class="info-row">
+    <div class="info-row" style="grid-template-columns:repeat(2,1fr)">
       <div class="info-chip">
         <div class="ic-ico">🪪</div>
         <div><div class="ic-val" id="kpi-uniqueEmp">0</div><div class="ic-lbl">Unique Employees (by Employee ID)</div></div>
-      </div>
-      <div class="info-chip">
-        <div class="ic-ico">📅</div>
-        <div><div class="ic-val" id="kpi-avgTrainings">0</div><div class="ic-lbl">Avg Programme Enrolments per Employee</div></div>
       </div>
       <div class="info-chip">
         <div class="ic-ico">🎯</div>
@@ -1255,7 +1251,6 @@ function renderKPIs() {
   const scoreVals=filteredData.map(r=>parseFloat(r['Test Score'])).filter(s=>!isNaN(s)&&s>0);
   const avgTestScore=scoreVals.length?(scoreVals.reduce((a,b)=>a+b,0)/scoreVals.length).toFixed(1):null;
   // RULE 4: avg course enrolments per unique employee
-  const avgTrainings = uniqueEmps>0 ? (filteredData.length/uniqueEmps).toFixed(1) : '0';
 
   animCount('kpi-enrolled', enrolled);
   animCount('kpi-attended', attended);
@@ -1263,7 +1258,6 @@ function renderKPIs() {
   animCount('kpi-hours',    Math.round(hours));
   document.getElementById('kpi-attrate').textContent = rate+'%';
   animCount('kpi-uniqueEmp', uniqueEmps);
-  document.getElementById('kpi-avgTrainings').textContent = avgTrainings;
   const _sEl=document.getElementById('kpi-avgScore'); if(_sEl) _sEl.textContent=avgTestScore!==null?avgTestScore:'—';
   document.getElementById('kpi1sub').textContent = `All invited employees (attended + not attended)`;
   document.getElementById('kpi2sub').textContent = `Invited employees who confirmed attendance`;
@@ -1722,35 +1716,44 @@ function buildProgCard(prog, hc, resigned, idx) {
     coTarget.forEach(e => idVars(e['Employee No.']).forEach(v => coTargetIdSet.add(v)));
     const inCoTarget = id => idVars(id).some(v => coTargetIdSet.has(v));
 
-    // Phase attendance sets
-    const phaseDone = {};
+    // Phase attendance sets — count ALL attendees (target + additional)
+    const phaseDone        = {};  // target audience who attended
+    const phaseDoneAll     = {};  // everyone who attended (incl. outside target)
     (co.phaseLabels||[]).forEach(ph => {
       const phNorm = ph.toLowerCase().replace(/\s+/g,' ').trim();
       const matched = progRows.filter(r => {
         const ct = ns(r['Course Title']).toLowerCase().replace(/\s+/g,' ').trim();
         return ct.includes(phNorm) && ns(r['Attendance Status']).toLowerCase().includes('attend');
       });
-      phaseDone[ph] = new Set(matched.map(r=>nid(r['Employee No.'])).filter(id=>id&&inCoTarget(id)));
+      const allIds    = new Set(matched.map(r=>nid(r['Employee No.'])).filter(Boolean));
+      const targetIds = new Set([...allIds].filter(id => inCoTarget(id)));
+      phaseDone[ph]    = targetIds;
+      phaseDoneAll[ph] = allIds;   // includes out-of-target attendees still in HC
     });
 
-    // Sequential: doing phase N implies phases 1…N-1
+    // Sequential propagation (backward) — applied to both sets
     const labels = co.phaseLabels||[];
     for(let i=labels.length-1; i>=1; i--){
       phaseDone[labels[i]].forEach(id => {
         for(let j=0;j<i;j++) phaseDone[labels[j]].add(id);
       });
+      phaseDoneAll[labels[i]].forEach(id => {
+        for(let j=0;j<i;j++) phaseDoneAll[labels[j]].add(id);
+      });
     }
 
-    // Additional participants: attended but NOT in target audience, still in HC
-    const coAllAttended = new Set(progRows.filter(r => {
-      const ct = ns(r['Course Title']).toLowerCase();
-      return ct.includes(co.name.toLowerCase()) && ns(r['Attendance Status']).toLowerCase().includes('attend');
-    }).map(r=>nid(r['Employee No.'])).filter(id=>id&&inHc(id)&&!inCoTarget(id)));
+    // Additional participants: attended at least one phase, not in target audience, still in HC
+    const firstPh = labels[0];
+    const coAllAttended = firstPh
+      ? new Set([...(phaseDoneAll[firstPh]||[])].filter(id => inHc(id) && !inCoTarget(id)))
+      : new Set();
 
     const started  = phaseDone[labels[0]] || new Set();
     const finished = phaseDone[labels[labels.length-1]] || new Set();
+    // Total started = target who started + additional
+    const totalStartedAll = firstPh ? (phaseDoneAll[firstPh]||new Set()).size : started.size;
 
-    return { co, coTarget, coTargetIdSet, phaseDone, labels, started, finished, coAllAttended, inCoTarget };
+    return { co, coTarget, coTargetIdSet, phaseDone, phaseDoneAll, labels, started, finished, coAllAttended, inCoTarget, totalStartedAll };
   });
 
   // ── Overall program stats ────────────────────────────────────────────────
@@ -1817,45 +1820,113 @@ function buildProgCard(prog, hc, resigned, idx) {
       </div>`:''}
     </div>` : '';
 
-  // ── Per-course breakdown ─────────────────────────────────────────────────
-  const coursesHTML = courseResults.map(({co, coTarget, phaseDone, labels, started, finished, coAllAttended}) => {
-    const ct = coTarget.length;
-    const cs = started.size;
-    const cf = finished.size;
-    const cpct = ct>0?Math.round(cs/ct*100):0;
-    const cFpct= ct>0?Math.round(cf/ct*100):0;
+  // ── Per-course breakdown with phase tabs ─────────────────────────────────
+  const coursesHTML = courseResults.map(({co, coTarget, phaseDone, phaseDoneAll, labels, started, finished, coAllAttended, totalStartedAll}) => {
+    const ct     = coTarget.length;
+    const cs     = started.size;
+    const cf     = finished.size;
+    const cpct   = ct>0?Math.round(cs/ct*100):0;
+    const cFpct  = ct>0?Math.round(cf/ct*100):0;
     const cColor = cpct>=80?'#0a8f5c':cpct>=50?'#c47500':'#0175C0';
+    const cid    = `co-${prog.id}-${co.id}`;
 
-    const phaseRows = labels.map((ph,i) => {
-      const done = phaseDone[ph]||new Set();
-      const pct  = ct>0?Math.round(done.size/ct*100):0;
-      return `<div style="display:flex;align-items:center;gap:9px;margin-bottom:5px">
-        <div style="font-size:11.5px;color:var(--text2);min-width:24px;font-weight:700;color:var(--ubl)">P${i+1}</div>
-        <div style="font-size:11px;color:var(--text3);flex:0 0 auto;min-width:28px">${pct}%</div>
-        <div style="flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden">
-          <div style="height:100%;border-radius:3px;background:${cColor};width:${pct}%"></div>
+    // Phase toggle tabs (only shown when > 1 phase)
+    const phaseTabsHTML = labels.length > 1 ? `
+      <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
+        <button onclick="setPhaseTab('${cid}','all')" id="${cid}-tab-all"
+          style="padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;background:var(--ubl);color:#fff;border:none">
+          All Phases
+        </button>
+        ${labels.map((ph,i)=>`
+        <button onclick="setPhaseTab('${cid}','${i}')" id="${cid}-tab-${i}"
+          style="padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;background:var(--bg2);color:var(--text2);border:1px solid var(--border)">
+          Phase ${i+1}
+        </button>`).join('')}
+      </div>` : '';
+
+    // "All phases" view — bars for each phase
+    const allPhasesView = `<div id="${cid}-view-all">
+      ${labels.map((ph,i) => {
+        const done    = phaseDoneAll[ph]||new Set();   // total including additional
+        const doneT   = phaseDone[ph]||new Set();      // target only
+        const pct     = ct>0?Math.round(doneT.size/ct*100):0;
+        const addCnt  = done.size - doneT.size;
+        return `<div style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+            <div style="font-size:12px;font-weight:600;color:var(--text2)">Phase ${i+1}<span style="font-size:10.5px;font-weight:400;color:var(--text4);margin-left:6px">${ph.replace(co.name,'').trim()}</span></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:11px;font-weight:700;color:${cColor}">${pct}%</span>
+              <span style="font-size:10.5px;color:var(--text4)">${doneT.size}/${ct} target</span>
+              ${addCnt>0?`<span style="font-size:10px;color:var(--amber)">+${addCnt} additional</span>`:''}
+            </div>
+          </div>
+          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div style="height:100%;border-radius:3px;background:${cColor};width:${pct}%"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    // Individual phase views — employee list for that specific phase
+    const singlePhaseViews = labels.map((ph,i) => {
+      const done    = phaseDoneAll[ph]||new Set();
+      const doneT   = phaseDone[ph]||new Set();
+      const notDone = coTarget.filter(e => !idVars(nid(e['Employee No.'])).some(v=>doneT.has(v)));
+      return `<div id="${cid}-view-${i}" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div style="background:var(--green-t,#ecfdf5);border:1px solid #9de0c0;border-radius:9px;padding:10px 14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#065f46;font-weight:700;margin-bottom:4px">✓ Completed Phase ${i+1}</div>
+            <div style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#065f46">${doneT.size}</div>
+            <div style="font-size:10.5px;color:#065f46">${ct>0?Math.round(doneT.size/ct*100):0}% of target${done.size-doneT.size>0?` · +${done.size-doneT.size} additional`:''}</div>
+          </div>
+          <div style="background:var(--amber-t,#fff8ec);border:1px solid #fcd34d;border-radius:9px;padding:10px 14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#92400e;font-weight:700;margin-bottom:4px">⏳ Yet to Complete</div>
+            <div style="font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:#b45309">${notDone.length}</div>
+            <div style="font-size:10.5px;color:#b45309">${ct>0?Math.round(notDone.length/ct*100):0}% of target remaining</div>
+          </div>
         </div>
-        <div style="font-size:10.5px;color:var(--text4);min-width:56px;text-align:right">${done.size}/${ct}</div>
+        ${notDone.length ? `
+        <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+          <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+            <thead><tr style="background:var(--bg2)">
+              <th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text4);font-weight:700;border-bottom:1px solid var(--border)">Emp No.</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text4);font-weight:700;border-bottom:1px solid var(--border)">Name</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text4);font-weight:700;border-bottom:1px solid var(--border)">Grade</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text4);font-weight:700;border-bottom:1px solid var(--border)">Title</th>
+            </tr></thead>
+            <tbody>${notDone.slice(0,100).map(e=>`
+              <tr style="border-bottom:1px solid var(--border)">
+                <td style="padding:6px 10px;color:var(--text2)">${e['Employee No.']||'—'}</td>
+                <td style="padding:6px 10px;color:var(--text2)">${e['Employee Name']||'—'}</td>
+                <td style="padding:6px 10px;color:var(--text3)">${e['Grade']||'—'}</td>
+                <td style="padding:6px 10px;color:var(--text3)">${e['Functional Title']||'—'}</td>
+              </tr>`).join('')}
+            ${notDone.length>100?`<tr><td colspan="4" style="padding:8px 10px;text-align:center;color:var(--text4);font-size:11px">Showing 100 of ${notDone.length}</td></tr>`:''}
+            </tbody>
+          </table>
+        </div>` : `<div style="font-size:12px;color:var(--green);font-weight:600">✓ All target employees completed Phase ${i+1}</div>`}
       </div>`;
     }).join('');
 
     const addLine = coAllAttended.size>0
-      ? `<div style="font-size:10.5px;color:var(--amber);margin-top:4px">+ ${coAllAttended.size} additional participants (outside target)</div>` : '';
+      ? `<div style="font-size:10.5px;color:var(--amber);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">ℹ ${coAllAttended.size} additional participants attended (outside defined target audience)</div>` : '';
 
-    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:9px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:9px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
         <div>
           <div style="font-size:13px;font-weight:700;color:var(--text)">${co.name}</div>
           <div style="font-size:10.5px;color:var(--text3);margin-top:2px">
-            Audience: ${co.titles.length?co.titles.join(', '):'All titles'} · ${ct} employees
+            Target: ${co.titles.length?co.titles.join(', '):'All in mandated groups'} · ${ct} employees
           </div>
         </div>
-        <div style="text-align:right">
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
           <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:${cColor}">${cpct}%</div>
-          <div style="font-size:10px;color:var(--text4)">started · ${cFpct}% fully done</div>
+          <div style="font-size:10px;color:var(--text4)">started&nbsp;·&nbsp;${cFpct}% fully done</div>
         </div>
       </div>
-      ${phaseRows}
+      ${phaseTabsHTML}
+      ${allPhasesView}
+      ${singlePhaseViews}
       ${addLine}
     </div>`;
   }).join('');
@@ -1914,6 +1985,9 @@ function buildProgCard(prog, hc, resigned, idx) {
     </div>
 
     <!-- Pending toggle -->
+    <!-- Month-by-month progress -->
+    ${buildMonthByMonthHTML(prog, hc, prog.id)}
+
     ${pendingEmps.length ? `
     <div class="pp-pending-toggle" onclick="togglePending('${pendingId}',this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -1937,6 +2011,153 @@ function buildProgCard(prog, hc, resigned, idx) {
     </div>`
     : `<div style="font-size:12px;color:var(--green);font-weight:600;padding:8px 0;border-top:1px solid var(--border)">✓ All target employees have started at least one course</div>`}
   </div>`;
+}
+
+// ── Phase tab switcher ────────────────────────────────────────────────────
+function setPhaseTab(cid, tab) {
+  // Hide all views for this course
+  const allView = document.getElementById(cid + '-view-all');
+  if (allView) allView.style.display = 'none';
+  let i = 0;
+  while (true) {
+    const v = document.getElementById(cid + '-view-' + i);
+    if (!v) break;
+    v.style.display = 'none';
+    i++;
+  }
+  // Show selected view
+  const target = document.getElementById(cid + '-view-' + tab);
+  if (target) target.style.display = 'block';
+
+  // Update tab button styles
+  const allBtn = document.getElementById(cid + '-tab-all');
+  if (allBtn) {
+    allBtn.style.background = tab==='all' ? 'var(--ubl)' : 'var(--bg2)';
+    allBtn.style.color = tab==='all' ? '#fff' : 'var(--text2)';
+    allBtn.style.border = tab==='all' ? 'none' : '1px solid var(--border)';
+  }
+  let j = 0;
+  while (true) {
+    const btn = document.getElementById(cid + '-tab-' + j);
+    if (!btn) break;
+    const active = tab === String(j);
+    btn.style.background = active ? 'var(--ubl)' : 'var(--bg2)';
+    btn.style.color = active ? '#fff' : 'var(--text2)';
+    btn.style.border = active ? 'none' : '1px solid var(--border)';
+    j++;
+  }
+}
+
+// ── Month-by-month program progress ──────────────────────────────────────
+// Build a per-month breakdown for a program card using allData
+function buildMonthByMonthHTML(prog, hc, progId) {
+  if (!hc || !hc.rows || !prog.courses || !prog.courses.length) return '';
+
+  const ns     = v => String(v||'').trim();
+  const nid    = v => ns(v).replace(/\.0$/,'');
+  const idVars = id => { const s=nid(id); return [s, s.replace(/^0+/,'')||s, s.padStart(6,'0')]; };
+
+  const hcMap = new Map();
+  hc.rows.forEach(e => idVars(e['Employee No.']).forEach(v => hcMap.set(v, e)));
+  const inHc = id => idVars(id).some(v => hcMap.has(v));
+
+  const progRows = allData.filter(r => ns(r['Category']).toLowerCase() === prog.category.toLowerCase());
+
+  // Get sorted months from training data
+  const months = [...new Set(progRows.map(r => r._month || r._uploadMonth).filter(Boolean))];
+  const sortedMonths = sortMonths(months);
+  if (!sortedMonths.length) return '';
+
+  // For each month, count cumulative attendees (anyone who attended up to & incl. that month)
+  const cumulativeByMonth = sortedMonths.map(month => {
+    const upToMonth = progRows.filter(r => {
+      const m = r._month || r._uploadMonth || '';
+      const mIdx = sortedMonths.indexOf(m);
+      const thisIdx = sortedMonths.indexOf(month);
+      return mIdx <= thisIdx && ns(r['Attendance Status']).toLowerCase().includes('attend');
+    });
+    const attendedIds = new Set(upToMonth.map(r => nid(r['Employee No.'])).filter(Boolean));
+    // Count target (in HC + mandated groups) separately
+    const targetAttended = [...attendedIds].filter(id => inHc(id));
+    return { month, count: attendedIds.size, targetCount: targetAttended.length };
+  });
+
+  // Per-month new attendees (only first appearance)
+  const seenBefore = new Set();
+  const monthlyNew = sortedMonths.map(month => {
+    const thisMonth = progRows.filter(r => {
+      const m = r._month || r._uploadMonth || '';
+      return m === month && ns(r['Attendance Status']).toLowerCase().includes('attend');
+    });
+    const ids = new Set(thisMonth.map(r => nid(r['Employee No.'])).filter(Boolean));
+    const newThisMonth = [...ids].filter(id => !seenBefore.has(id));
+    newThisMonth.forEach(id => seenBefore.add(id));
+    ids.forEach(id => seenBefore.add(id));
+    return { month, new: newThisMonth.length };
+  });
+
+  const maxCumulative = Math.max(...cumulativeByMonth.map(m => m.count), 1);
+  const maxNew        = Math.max(...monthlyNew.map(m => m.new), 1);
+
+  const mbmId = 'mbm-' + progId;
+
+  return `
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text4)">Month-by-Month Progress</div>
+        <div style="display:flex;gap:6px">
+          <button onclick="setMbmView('${mbmId}','cumulative')" id="${mbmId}-btn-cumulative"
+            style="padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;background:var(--ubl);color:#fff;border:none">
+            Cumulative
+          </button>
+          <button onclick="setMbmView('${mbmId}','monthly')" id="${mbmId}-btn-monthly"
+            style="padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;background:var(--bg2);color:var(--text2);border:1px solid var(--border)">
+            Monthly New
+          </button>
+        </div>
+      </div>
+
+      <div id="${mbmId}-cumulative">
+        ${cumulativeByMonth.map(({month, count, targetCount}) => {
+          const pct = Math.round(count/maxCumulative*100);
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <div style="font-size:11px;color:var(--text2);min-width:90px;white-space:nowrap">${month.replace(/\s\d{4}/,'').trim()}</div>
+            <div style="flex:1;height:16px;background:var(--border);border-radius:4px;overflow:hidden;position:relative">
+              <div style="height:100%;background:var(--ubl);border-radius:4px;width:${pct}%;opacity:0.85"></div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--ubl);min-width:28px;text-align:right">${count}</div>
+          </div>`;
+        }).join('')}
+        <div style="font-size:10px;color:var(--text4);margin-top:4px">Total unique attendees cumulative per month</div>
+      </div>
+
+      <div id="${mbmId}-monthly" style="display:none">
+        ${monthlyNew.map(({month, new:n}) => {
+          const pct = Math.round(n/maxNew*100);
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <div style="font-size:11px;color:var(--text2);min-width:90px;white-space:nowrap">${month.replace(/\s\d{4}/,'').trim()}</div>
+            <div style="flex:1;height:16px;background:var(--border);border-radius:4px;overflow:hidden">
+              <div style="height:100%;background:var(--green);border-radius:4px;width:${pct}%"></div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--green);min-width:28px;text-align:right">${n}</div>
+          </div>`;
+        }).join('')}
+        <div style="font-size:10px;color:var(--text4);margin-top:4px">New first-time attendees per month</div>
+      </div>
+    </div>`;
+}
+
+function setMbmView(mbmId, view) {
+  ['cumulative','monthly'].forEach(v => {
+    const el  = document.getElementById(mbmId + '-' + v);
+    const btn = document.getElementById(mbmId + '-btn-' + v);
+    if (el)  el.style.display  = v===view ? 'block' : 'none';
+    if (btn) {
+      btn.style.background = v===view ? 'var(--ubl)' : 'var(--bg2)';
+      btn.style.color      = v===view ? '#fff' : 'var(--text2)';
+      btn.style.border     = v===view ? 'none' : '1px solid var(--border)';
+    }
+  });
 }
 
 function togglePending(id, btn) {
