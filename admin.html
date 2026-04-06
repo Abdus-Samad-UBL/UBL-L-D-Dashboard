@@ -521,16 +521,29 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 // Merges per-month keys (new format) + legacy blob (old format) seamlessly
 function loadAllTrainingData() {
   const rows = [];
+  const seenKeys = new Set();
+  // Primary: read from index
   try {
     const tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
     tdIndex.forEach(m => {
       try {
         const chunk = JSON.parse(localStorage.getItem(m.key) || '[]');
         rows.push(...chunk);
-      } catch(e) { console.warn('Failed reading month:', m.label); }
+        seenKeys.add(m.key);
+      } catch(e) {}
     });
   } catch(e) {}
-  // Legacy single-blob fallback (data uploaded before this fix)
+  // Secondary: scan ALL ubl_td_ keys — catches orphaned months the index missed
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index' && !seenKeys.has(k)) {
+      try {
+        const chunk = JSON.parse(localStorage.getItem(k) || '[]');
+        if (chunk.length) rows.push(...chunk);
+      } catch(e) {}
+    }
+  }
+  // Legacy single-blob fallback
   try {
     const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
     if (legacy.length) rows.push(...legacy);
@@ -833,13 +846,32 @@ async function processTrainingData(){
     return s;
   });
 
-  // Store each month's data in its own localStorage key (per-month chunking)
-  // This bypasses the 5MB single-key limit — 13 months × ~1MB each = fine
+  // Store each month's data in its own localStorage key
   const monthKey = 'ubl_td_' + label.replace(/[^a-z0-9]/gi, '_');
+
+  // Ensure all values are plain strings/numbers — no Date objects or undefined
+  const safeSlim = slim.map(row => {
+    const safe = {};
+    Object.keys(row).forEach(k => {
+      const v = row[k];
+      if (v === null || v === undefined) { safe[k] = ''; }
+      else if (v instanceof Date) { safe[k] = v.toISOString(); }
+      else if (typeof v === 'object') { safe[k] = String(v); }
+      else { safe[k] = v; }
+    });
+    return safe;
+  });
+
+  let saveFailed = false;
   try {
-    localStorage.setItem(monthKey, JSON.stringify(slim));
+    const serialised = JSON.stringify(safeSlim);
+    localStorage.setItem(monthKey, serialised);
+    console.log(`Saved ${safeSlim.length} rows to ${monthKey} (${(serialised.length/1024).toFixed(1)} KB)`);
   } catch(e) {
-    console.warn('Failed to store month data:', label, e.message);
+    saveFailed = true;
+    console.error('localStorage save failed for', label, ':', e.message);
+    showStatus('trainingStatus','err','Storage Error',
+      `Could not save to browser storage: ${e.message}. Try clearing old months first.`);
   }
 
   // Update the month index — always upsert (remove old entry, add new)
@@ -881,22 +913,9 @@ function refreshTrainingRepo(){
   let meta=[],total=0,courses=0;
   try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
   try{
-    const tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
-    let allCourses = new Set();
-    tdIndex.forEach(m => {
-      try {
-        const rows = JSON.parse(localStorage.getItem(m.key) || '[]');
-        total += rows.length;
-        rows.forEach(r => { if(r['Course Title']) allCourses.add(norm(r['Course Title'])); });
-      } catch(e) {}
-    });
-    // Legacy blob fallback
-    const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
-    if(legacy.length) {
-      total += legacy.length;
-      legacy.forEach(r => { if(r['Course Title']) allCourses.add(norm(r['Course Title'])); });
-    }
-    courses = allCourses.size;
+    const rows = loadAllTrainingData();
+    total = rows.length;
+    courses = new Set(rows.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
   }catch(e){}
   document.getElementById('repoMonths').textContent=meta.length;
   document.getElementById('repoRecords').textContent=total.toLocaleString();
