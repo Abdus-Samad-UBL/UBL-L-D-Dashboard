@@ -1074,64 +1074,92 @@ function sortMonths(months) {
 // ════════════════════════════════════════════════════════
 const APPS_URL = 'https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec';
 
-window.addEventListener('DOMContentLoaded', () => {
-  loadDashboardFromSheets();
-});
+// ════════════════════════════════════════════════════════
+// HYBRID LOADING:
+//   Training data  → localStorage (instant, no network)
+//   Headcount      → Google Sheets (no size limit)
+//   Programs       → localStorage (fast, synced to Sheets on save)
+//   Resigned IDs   → Google Sheets
+// ════════════════════════════════════════════════════════
 
-async function loadDashboardFromSheets() {
-  // Show loading state
+function loadAllTrainingData() {
+  const rows = [];
+  const seen = new Set();
+  // Per-month keys (new format)
+  try {
+    const idx = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
+    idx.forEach(m => {
+      try { const chunk = JSON.parse(localStorage.getItem(m.key)||'[]'); rows.push(...chunk); seen.add(m.key); } catch(e) {}
+    });
+  } catch(e) {}
+  // Full scan — catches orphaned keys
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index' && !seen.has(k)) {
+      try { const chunk = JSON.parse(localStorage.getItem(k)||'[]'); if(chunk.length) rows.push(...chunk); } catch(e) {}
+    }
+  }
+  // Legacy single-blob fallback
+  try { const legacy = JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); if(legacy.length) rows.push(...legacy); } catch(e) {}
+  return rows;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
   const statusDot  = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
-  if (statusText) statusText.textContent = 'Loading data from Google Sheets…';
-  if (statusDot)  statusDot.className = 'status-dot';
 
+  // Step 1: Load training data from localStorage immediately
+  allData = loadAllTrainingData();
+
+  if (allData.length) {
+    if (statusText) statusText.textContent = `${allData.length.toLocaleString()} records loaded · Fetching headcount…`;
+    initDashboard();  // render charts/KPIs instantly
+  } else {
+    if (statusText) statusText.textContent = 'No training data — upload via Admin Panel';
+    if (statusDot) statusDot.classList.add('no-data');
+  }
+
+  // Step 2: Fetch headcount + programs from Sheets in background
+  // When it arrives, re-render the programme tracker section only
+  fetchFromSheets();
+});
+
+async function fetchFromSheets() {
+  const statusText = document.getElementById('statusText');
   try {
-    // Fetch training data + headcount in parallel
-    const [tdRes, hcRes, progRes, resignedRes] = await Promise.all([
-      fetch(`${APPS_URL}?action=getTrainingData`).then(r => r.json()),
+    const [hcRes, progRes, resignedRes] = await Promise.all([
       fetch(`${APPS_URL}?action=getHeadcount`).then(r => r.json()),
       fetch(`${APPS_URL}?action=getPrograms`).then(r => r.json()),
       fetch(`${APPS_URL}?action=getResignedIds`).then(r => r.json()),
     ]);
 
-    if (!tdRes.success) throw new Error('Training data: ' + tdRes.error);
-
-    allData = tdRes.rows || [];
-
-    // Store headcount and programs for program tracker
-    if (hcRes.success && hcRes.rows) {
+    // Headcount
+    if (hcRes.success && hcRes.rows && hcRes.rows.length) {
       window._sheetsHc = { rows: hcRes.rows, month: hcRes.month || '' };
     }
-    if (progRes.success && progRes.programs) {
-      // Merge with localStorage programs (admin may have added some not yet synced)
-      const localProgs = JSON.parse(localStorage.getItem('ubl_programs') || '[]');
-      const sheetsProgs = progRes.programs || [];
-      // Sheets is source of truth — use sheets, fall back to local if sheets empty
-      if (sheetsProgs.length) {
-        localStorage.setItem('ubl_programs', JSON.stringify(sheetsProgs));
-      }
+
+    // Programs — Sheets is source of truth, cache locally
+    if (progRes.success && progRes.programs && progRes.programs.length) {
+      localStorage.setItem('ubl_programs', JSON.stringify(progRes.programs));
     }
+
+    // Resigned IDs
     if (resignedRes.success) {
       window._sheetsResigned = new Set(resignedRes.resignedIds || []);
     }
 
-    if (allData.length) {
-      if (statusText) statusText.textContent = `${allData.length.toLocaleString()} records loaded`;
-      initDashboard();
-    } else {
-      if (statusText) statusText.textContent = 'No data found in Google Sheets';
-      if (statusDot) statusDot.classList.add('no-data');
+    // Re-render programme tracker now that headcount is loaded
+    renderProgramProgress();
+
+    if (statusText) {
+      const hcCount = hcRes.rows ? hcRes.rows.length.toLocaleString() : '0';
+      statusText.textContent = `${allData.length.toLocaleString()} records · ${hcCount} employees loaded`;
     }
+
   } catch(err) {
-    console.error('Sheets load failed:', err);
-    if (statusText) statusText.textContent = 'Could not load from Sheets — check connection';
-    if (statusDot) statusDot.classList.add('no-data');
-    // Show empty state
-    const emptyState = document.getElementById('emptyState');
-    if (emptyState) {
-      emptyState.style.display = 'flex';
-      const p = emptyState.querySelector('.empty-p');
-      if (p) p.textContent = 'Could not connect to Google Sheets. Check your Apps Script deployment and make sure "Who has access" is set to Anyone.';
+    console.warn('Background Sheets fetch failed:', err.message);
+    if (statusText && allData.length) {
+      statusText.textContent = `${allData.length.toLocaleString()} records loaded · Headcount unavailable (Sheets offline)`;
     }
   }
 }
