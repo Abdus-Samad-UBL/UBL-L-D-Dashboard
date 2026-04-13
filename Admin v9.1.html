@@ -829,21 +829,6 @@ async function processTrainingData(){
 
   const tagged = parsedTrainingRows.map(r=>({...r, _uploadMonth:label, _uploadedAt:new Date().toISOString()}));
 
-  // ── Save to localStorage ──────────────────────────────────────────────────
-  // Strip each row to only the columns needed by the dashboard to reduce size
-  // Minimal fields for localStorage — keeps each row ~120 bytes vs ~300 bytes
-  // Full data is in the uploaded Excel; localStorage is only for dashboard display
-  const KEEP = ['Region','Employee No.','Functional Title','Grade','Group',
-                'Cluster','Attendance Status','Course Title','Training Type',
-                'Test Score','Duration','Training Venue','Category',
-                '_month','_quarter','_uploadMonth'];
-
-  const slim = tagged.map(r => {
-    const s = {};
-    KEEP.forEach(k => { if(r[k] !== undefined) s[k] = r[k]; });
-    return s;
-  });
-
   // ── Save to localStorage (instant load on dashboard) ────────────────────
   const KEEP = ['Region','Employee No.','Functional Title','Grade','Group',
                 'Cluster','Attendance Status','Course Title','Training Type',
@@ -965,7 +950,7 @@ async function deleteTrainingMonth(month){
   if (result && result.success) {
     showStatus('trainingStatus','ok','✓ Deleted',`"${month}" removed from browser storage and Google Sheets.`);
   } else {
-    showStatus('trainingStatus','warn','⚠ Partially Deleted',`Removed from browser but Sheets deletion failed: ${result?.error||'unknown error'}`);
+    showStatus('trainingStatus','warn','⚠ Partially Deleted',`Removed from browser but Sheets deletion failed: ${(result && result.error ? result.error : 'unknown error')}`);
   }
 }
 
@@ -1233,7 +1218,7 @@ async function deleteHcMonth(month){
   if (result && result.success) {
     showStatus('hcStatus','ok','✓ Deleted',`Headcount for "${month}" removed from browser and Google Sheets.`);
   } else {
-    showStatus('hcStatus','warn','⚠ Partially Deleted',`Removed from browser but Sheets deletion failed: ${result?.error||'unknown error'}`);
+    showStatus('hcStatus','warn','⚠ Partially Deleted',`Removed from browser but Sheets deletion failed: ${(result && result.error ? result.error : 'unknown error')}`);
   }
 }
 
@@ -1701,7 +1686,7 @@ async function clearTrainingData(){
   if (result && result.success) {
     showStatus('trainingStatus','ok','✓ Cleared','All training data removed from browser and Google Sheets.');
   } else {
-    showStatus('trainingStatus','warn','⚠ Partially Cleared',`Browser cleared but Sheets deletion failed: ${result?.error||'unknown error'}`);
+    showStatus('trainingStatus','warn','⚠ Partially Cleared',`Browser cleared but Sheets deletion failed: ${(result && result.error ? result.error : 'unknown error')}`);
   }
 }
 async function clearHeadcount(){
@@ -1722,7 +1707,7 @@ async function clearHeadcount(){
   if (result && result.success) {
     showStatus('hcStatus','ok','✓ Cleared','All headcount data removed from browser and Google Sheets.');
   } else {
-    showStatus('hcStatus','warn','⚠ Partially Cleared',`Browser cleared but Sheets deletion failed: ${result?.error||'unknown error'}`);
+    showStatus('hcStatus','warn','⚠ Partially Cleared',`Browser cleared but Sheets deletion failed: ${(result && result.error ? result.error : 'unknown error')}`);
   }
 }
 function clearPrograms(){ if(!confirm('Clear ALL program configurations?')) return; localStorage.removeItem('ubl_programs'); refreshProgList(); }
