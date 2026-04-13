@@ -520,7 +520,25 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 // ════════════════════════════════════════════════════════
 // ── Load ALL training data from per-month localStorage keys ──────────────
 // Merges per-month keys (new format) + legacy blob (old format) seamlessly
-// Training data loaded from Google Sheets — see dashboard.html
+function loadAllTrainingData() {
+  const rows = [];
+  const seen = new Set();
+  try {
+    const idx = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
+    idx.forEach(m => {
+      try { const chunk = JSON.parse(localStorage.getItem(m.key)||'[]'); rows.push(...chunk); seen.add(m.key); } catch(e) {}
+    });
+  } catch(e) {}
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index' && !seen.has(k)) {
+      try { const chunk = JSON.parse(localStorage.getItem(k)||'[]'); if(chunk.length) rows.push(...chunk); } catch(e) {}
+    }
+  }
+  try { const leg = JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); if(leg.length) rows.push(...leg); } catch(e) {}
+  return rows;
+}
+
 
 async function syncTrainingInChunks(label, rows) {
   const CHUNK = 500;
@@ -826,8 +844,37 @@ async function processTrainingData(){
     return s;
   });
 
-  // Data is stored in Google Sheets (no localStorage for training data)
-  // Just update the meta so the repository table shows the upload
+  // ── Save to localStorage (instant load on dashboard) ────────────────────
+  const KEEP = ['Region','Employee No.','Functional Title','Grade','Group',
+                'Cluster','Attendance Status','Course Title','Training Type',
+                'Test Score','Duration','Training Venue','Category',
+                '_month','_quarter','_uploadMonth'];
+
+  const safeSlim = tagged.map(row => {
+    const s = {};
+    KEEP.forEach(k => {
+      const v = row[k];
+      if (v === null || v === undefined) s[k] = '';
+      else if (v instanceof Date) s[k] = v.toISOString();
+      else if (typeof v === 'object') s[k] = String(v);
+      else s[k] = v;
+    });
+    return s;
+  });
+
+  const monthKey = 'ubl_td_' + label.replace(/[^a-z0-9]/gi, '_');
+  try {
+    localStorage.setItem(monthKey, JSON.stringify(safeSlim));
+    // Update index (upsert)
+    let tdIndex = [];
+    try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
+    tdIndex = tdIndex.filter(m => m.label !== label);
+    tdIndex.push({ label, key: monthKey });
+    localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex));
+    console.log(`Saved ${safeSlim.length} rows to localStorage key ${monthKey}`);
+  } catch(storageErr) {
+    console.warn('localStorage save failed (storage full?):', storageErr.message);
+  }
 
   // Save meta
   let meta = []; try { meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]'); } catch(e) {}
@@ -862,11 +909,12 @@ async function processTrainingData(){
 
 function refreshTrainingRepo(){
   let meta=[],total=0,courses=0;
-  // Load meta from localStorage (set after upload)
   try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
-  // Compute totals from meta (no local data)
-  total = meta.reduce((s,m)=>s+(m.count||0),0);
-  courses = 0; // not easily available from meta alone
+  try{
+    const rows = loadAllTrainingData();
+    total = rows.length;
+    courses = new Set(rows.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
+  }catch(e){}
   document.getElementById('repoMonths').textContent=meta.length;
   document.getElementById('repoRecords').textContent=total.toLocaleString();
   document.getElementById('repoLastUpload').textContent=meta.length?meta[meta.length-1].month:'—';
@@ -901,13 +949,24 @@ function refreshTrainingRepo(){
     </tr>`).join('');
 }
 
-function deleteTrainingMonth(month){
-  if(!confirm(`Delete all training data for "${month}"?`)) return;
-  // localStorage training data removed — data lives in Sheets
+async function deleteTrainingMonth(month){
+  if(!confirm(`Delete all training data for "${month}"?\n\nThis will delete from both this browser AND Google Sheets.`)) return;
+  // Remove from localStorage
+  const monthKey = 'ubl_td_' + month.replace(/[^a-z0-9]/gi, '_');
+  localStorage.removeItem(monthKey);
+  let tdIndex = [];
+  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
+  localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex.filter(m => m.label !== month)));
   let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
-  localStorage.setItem('ubl_ld_meta',JSON.stringify(meta.filter(m=>m.month!==month)));
-  syncToSheets({ action:'delete', monthLabel:month });
+  localStorage.setItem('ubl_ld_meta', JSON.stringify(meta.filter(m=>m.month!==month)));
   refreshTrainingRepo();
+  // Delete from Google Sheets
+  const result = await syncToSheets({ action:'delete', monthLabel:month });
+  if (result && result.success) {
+    showStatus('trainingStatus','ok','✓ Deleted',`"${month}" removed from browser storage and Google Sheets.`);
+  } else {
+    showStatus('trainingStatus','warn','⚠ Partially Deleted',`Removed from browser but Sheets deletion failed: ${result?.error||'unknown error'}`);
+  }
 }
 
 // ════════════════════════════════════════════════════════
@@ -1156,19 +1215,26 @@ function refreshHcSummary(){
     </tr>`).join('');
 }
 
-function deleteHcMonth(month){
-  if(!confirm(`Delete headcount for "${month}"?`)) return;
+async function deleteHcMonth(month){
+  if(!confirm(`Delete headcount for "${month}"?\n\nThis will delete from both this browser AND Google Sheets.`)) return;
+  // Remove from localStorage
   let h=[]; try{ h=JSON.parse(localStorage.getItem('ubl_hc_history')||'[]'); }catch(e){}
   localStorage.setItem('ubl_hc_history',JSON.stringify(h.filter(x=>x.month!==month)));
   let active=null; try{ active=JSON.parse(localStorage.getItem('ubl_hc_active')||'null'); }catch(e){}
   if(active&&active.month===month){
-    // Clear chunks
     if(active.chunkCount){
       for(let i=0;i<active.chunkCount;i++) localStorage.removeItem(`ubl_hc_chunk_${i}`);
     }
     localStorage.removeItem('ubl_hc_active');
   }
   refreshHcSummary();
+  // Delete from Google Sheets
+  const result = await syncToSheets({ action:'deleteHeadcount', monthLabel:month });
+  if (result && result.success) {
+    showStatus('hcStatus','ok','✓ Deleted',`Headcount for "${month}" removed from browser and Google Sheets.`);
+  } else {
+    showStatus('hcStatus','warn','⚠ Partially Deleted',`Removed from browser but Sheets deletion failed: ${result?.error||'unknown error'}`);
+  }
 }
 
 // ════════════════════════════════════════════════════════
@@ -1622,16 +1688,25 @@ function repairIndex() {
   refreshTrainingRepo();
 }
 
-function clearTrainingData(){
-  if(!confirm('Clear ALL training data?')) return;
+async function clearTrainingData(){
+  if(!confirm('Clear ALL training data?\n\nThis will permanently delete everything from both browser storage AND Google Sheets. This cannot be undone.')) return;
+  let tdIndex = [];
+  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
+  tdIndex.forEach(m => localStorage.removeItem(m.key));
+  localStorage.removeItem('ubl_td_index');
+  localStorage.removeItem('ubl_ld_data');
   localStorage.removeItem('ubl_ld_meta');
-  syncToSheets({action:'clearAll'});
   refreshTrainingRepo();
-  showStatus('trainingStatus','info','Cleared','All training data removed.');
+  const result = await syncToSheets({action:'clearAll'});
+  if (result && result.success) {
+    showStatus('trainingStatus','ok','✓ Cleared','All training data removed from browser and Google Sheets.');
+  } else {
+    showStatus('trainingStatus','warn','⚠ Partially Cleared',`Browser cleared but Sheets deletion failed: ${result?.error||'unknown error'}`);
+  }
 }
-function clearHeadcount(){
-  if(!confirm('Clear ALL headcount data?')) return;
-  // Clear chunks
+async function clearHeadcount(){
+  if(!confirm('Clear ALL headcount data?\n\nThis will permanently delete from both browser storage AND Google Sheets.')) return;
+  // Clear localStorage chunks
   try {
     const meta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
     if (meta && meta.chunkCount) {
@@ -1642,6 +1717,13 @@ function clearHeadcount(){
   localStorage.removeItem('ubl_hc_history');
   localStorage.removeItem('ubl_resigned_ids');
   refreshHcSummary();
+  // Clear from Google Sheets
+  const result = await syncToSheets({action:'clearHeadcount'});
+  if (result && result.success) {
+    showStatus('hcStatus','ok','✓ Cleared','All headcount data removed from browser and Google Sheets.');
+  } else {
+    showStatus('hcStatus','warn','⚠ Partially Cleared',`Browser cleared but Sheets deletion failed: ${result?.error||'unknown error'}`);
+  }
 }
 function clearPrograms(){ if(!confirm('Clear ALL program configurations?')) return; localStorage.removeItem('ubl_programs'); refreshProgList(); }
 </script>
