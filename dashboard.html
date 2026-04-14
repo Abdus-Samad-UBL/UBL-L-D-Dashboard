@@ -743,6 +743,10 @@ canvas { display: block; }
       <div class="live-dot off" id="statusDot"></div>
       <span id="statusText">No data loaded</span>
     </div>
+    <button class="tb-btn tb-btn-ghost" onclick="openReportBuilder()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Export Report
+    </button>
     <button class="tb-btn tb-btn-ghost" onclick="window.print()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Print / PDF
@@ -872,7 +876,11 @@ canvas { display: block; }
         </div>
         <div class="kpi-num" id="kpi-courses">0</div>
         <div class="kpi-lbl">Programs Conducted</div>
-        <div class="kpi-foot" id="kpi3sub">Distinct training programs</div>
+        <div class="kpi-foot" id="kpi3sub">Total sessions across all regions</div>
+        <div style="margin-top:5px;font-size:11px;color:var(--text3)">
+          <span id="kpi-unique-courses" style="font-weight:700;color:var(--amber)">0</span>
+          <span> unique programs</span>
+        </div>
       </div>
       <div class="kpi" style="--k-color:#5235a0;--k-bg:var(--ho-tint)">
         <div class="kpi-head">
@@ -1303,11 +1311,15 @@ function buildLabel() {
 function renderKPIs() {
   const enrolled   = filteredData.filter(isEnrolled).length;
   const attended   = filteredData.filter(isAttended).length;
-  // CHANGE 2: Programs counted as Course Title + Region combos
-  // Same program running simultaneously in different regions = separate programs
+  // Total sessions = Course Title + Region combos (same course in diff regions = separate session)
   const courses    = new Set(filteredData.map(r=>{
     const ct=norm(r['Course Title']); const rg=r._region;
     return (ct&&ct.toLowerCase()!=='n/a') ? `${ct}||${rg}` : null;
+  }).filter(Boolean)).size;
+  // Unique programs = distinct Course Titles only (regardless of region)
+  const uniqueCourses = new Set(filteredData.map(r=>{
+    const ct=norm(r['Course Title']);
+    return (ct&&ct.toLowerCase()!=='n/a') ? ct : null;
   }).filter(Boolean)).size;
   const hours      = filteredData.reduce((s,r)=>s+(parseFloat(r['Duration'])||0),0);
   const rate       = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
@@ -1320,11 +1332,13 @@ function renderKPIs() {
   animCount('kpi-enrolled', enrolled);
   animCount('kpi-attended', attended);
   animCount('kpi-courses',  courses);
+  const _ucEl=document.getElementById('kpi-unique-courses'); if(_ucEl) _ucEl.textContent=uniqueCourses.toLocaleString();
   animCount('kpi-hours',    Math.round(hours));
   document.getElementById('kpi-attrate').textContent = rate+'%';
   animCount('kpi-uniqueEmp', uniqueEmps);
   const _sEl=document.getElementById('kpi-avgScore'); if(_sEl) _sEl.textContent=avgTestScore!==null?avgTestScore:'—';
   document.getElementById('kpi1sub').textContent = `All invited employees (attended + not attended)`;
+  document.getElementById('kpi3sub').textContent = `${courses.toLocaleString()} sessions across ${[...new Set(filteredData.map(r=>r._region).filter(Boolean))].length} region(s)`;
   document.getElementById('kpi2sub').textContent = `Invited employees who confirmed attendance`;
   document.getElementById('kpi5sub').textContent = `${attended.toLocaleString()} attended / ${enrolled.toLocaleString()} enrolled`;
 }
@@ -1595,13 +1609,13 @@ function renderCourseTable(){
     const attended=d.filter(isAttended).length;
     const unique  =new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
     const rate    =enrolled>0?Math.round((attended/enrolled)*100):0;
-    const cat     =norm(d[0]?.['Category'])||'—';
-    const ttype   =norm(d[0]?.['Training Type'])||'—';
-    const venue   =norm(d[0]?.['Training Venue'])||'—';
-    const dur     =norm(d[0]?.['Duration'])||'—';
+    const cat     =norm((d[0]&&d[0]['Category'])||'')||'—';
+    const ttype   =norm((d[0]&&d[0]['Training Type'])||'')||'—';
+    const venue   =norm((d[0]&&d[0]['Training Venue'])||'')||'—';
+    const dur     =norm((d[0]&&d[0]['Duration'])||'')||'—';
     const scores  =d.map(r=>parseFloat(r['Test Score'])).filter(s=>!isNaN(s)&&s>0);
     const avgScore=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):null;
-    const trainer=norm(d[0]?.['Trainer Name'])||'—';
+    const trainer=norm((d[0]&&d[0]['Trainer Name'])||'')||'—';
     return {course,cat,ttype,venue,trainer,enrolled,attended,unique,rate,dur,avgScore};
   }).sort((a,b)=>b.enrolled-a.enrolled).slice(0,25);
 
@@ -2291,10 +2305,365 @@ function getPrevHcMonth() {
   } catch(e) { return null; }
 }
 
+// ════════════════════════════════════════════════════════
+// REPORT BUILDER
+// ════════════════════════════════════════════════════════
+
+function openReportBuilder() {
+  // Pre-fill YTD label from available months
+  const months = sortMonths([...new Set(allData.map(r=>r._month||r._uploadMonth).filter(Boolean))]);
+  if (months.length) {
+    const lastMonth = months[months.length-1].replace(/\s\d{4}$/,'');
+    const el = document.getElementById('rptYtdLabel');
+    if (el) el.textContent = lastMonth;
+  }
+  const modal = document.getElementById('reportModal');
+  modal.style.display = 'flex';
+  // Show/hide period options based on format selection
+  document.querySelectorAll('input[name="rptFormat"]').forEach(r => {
+    r.onchange = () => {
+      const wrap = document.getElementById('rptPeriodWrap');
+      wrap.style.display = r.value === 'attendance' ? 'block' : 'none';
+    };
+  });
+}
+
+function closeReportBuilder() {
+  document.getElementById('reportModal').style.display = 'none';
+}
+
+function generateReport() {
+  const format  = document.querySelector('input[name="rptFormat"]:checked').value;
+  const fileType= document.querySelector('input[name="rptFile"]:checked').value;
+
+  if (fileType === 'pdf') { closeReportBuilder(); setTimeout(()=>window.print(),200); return; }
+
+  if (format === 'attendance') generateAttendanceTable();
+  else if (format === 'summary') generateSummaryReport();
+  else if (format === 'detail')  generateDetailReport();
+}
+
+// ── Attendance Table — matches the stakeholder format in the screenshot ───
+// Rows = Programs (Course Titles), Columns = Regions × Periods
+function generateAttendanceTable() {
+  const includeCurMonth = document.getElementById('rpt-cur-month').checked;
+  const includeYtd      = document.getElementById('rpt-ytd').checked;
+
+  const months  = sortMonths([...new Set(allData.map(r=>r._month||r._uploadMonth).filter(Boolean))]);
+  const curMonth= months[months.length-1] || '';
+  const regions = ['South','Central','North'];
+
+  // All unique course titles (programs)
+  const programs = [...new Set(allData.map(r=>norm(r['Course Title'])).filter(Boolean))].sort();
+
+  // Count attendees: program × region × period
+  const count = (prog, region, monthList) => {
+    return new Set(
+      allData.filter(r =>
+        norm(r['Course Title']) === prog &&
+        isAttended(r) &&
+        (region === 'All' || (r._region||'').toLowerCase().includes(region.toLowerCase())) &&
+        (monthList.includes(r._month) || monthList.includes(r._uploadMonth))
+      ).map(r => norm(r['Employee No.'])).filter(Boolean)
+    ).size;
+  };
+
+  // Determine columns
+  const colDefs = [];
+  regions.forEach(reg => {
+    if (includeCurMonth) colDefs.push({ label: `${curMonth.replace(/\s\d{4}/,'').trim()} ${new Date().getFullYear()}`, region: reg, months: [curMonth] });
+    if (includeYtd)      colDefs.push({ label: `Jan–${curMonth.replace(/\s\d{4}/,'').trim()} ${new Date().getFullYear()}`, region: reg, months: months });
+  });
+
+  // Build header rows (matching screenshot style)
+  const subHeader = ['Programs', ...colDefs.map(c => c.label)];
+  const regionGroups = [];
+  regions.forEach(reg => {
+    const cols = colDefs.filter(c => c.region === reg);
+    if (cols.length) regionGroups.push({ name: `${reg} Region`, span: cols.length });
+  });
+
+  // Build data rows
+  const rows = programs.map(prog => {
+    const rowData = [prog];
+    colDefs.forEach(col => {
+      const n = count(prog, col.region, col.months);
+      rowData.push(n > 0 ? n : '-');
+    });
+    return rowData;
+  });
+
+  // Also add totals row
+  const totals = ['TOTAL'];
+  colDefs.forEach(col => {
+    const n = count('__all__', col.region, col.months); // will be 0, calculate properly
+    const t = programs.reduce((sum, prog) => {
+      const v = count(prog, col.region, col.months);
+      return sum + v;
+    }, 0);
+    totals.push(t > 0 ? t : '-');
+  });
+
+  // Build Excel workbook
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+
+  // Region header row
+  const regionRow = [''];
+  regionGroups.forEach(rg => {
+    regionRow.push(rg.name);
+    for (let i = 1; i < rg.span; i++) regionRow.push('');
+  });
+  wsData.push(regionRow);
+
+  // Column sub-header
+  wsData.push(subHeader);
+
+  // Data rows
+  rows.forEach(r => wsData.push(r));
+  wsData.push(totals);
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Column widths
+  ws['!cols'] = [{ wch: 40 }, ...colDefs.map(() => ({ wch: 12 }))];
+
+  // Merge region header cells
+  ws['!merges'] = [];
+  let colIdx = 1;
+  regionGroups.forEach(rg => {
+    if (rg.span > 1) {
+      ws['!merges'].push({ s:{r:0,c:colIdx}, e:{r:0,c:colIdx+rg.span-1} });
+    }
+    colIdx += rg.span;
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Attendance Table');
+
+  const fname = `UBL_LD_Attendance_Report_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  closeReportBuilder();
+}
+
+// ── KPI Summary report ────────────────────────────────────────────────────
+function generateSummaryReport() {
+  const incKpis    = document.getElementById('rpt-kpis').checked;
+  const incBanking = document.getElementById('rpt-banking').checked;
+  const incRegion  = document.getElementById('rpt-region').checked;
+  const incCourses = document.getElementById('rpt-courses').checked;
+  const incMonthly = document.getElementById('rpt-monthly').checked;
+  const incGrade   = document.getElementById('rpt-grade').checked;
+
+  const wb = XLSX.utils.book_new();
+  const enrolled = filteredData.filter(isEnrolled).length;
+  const attended = filteredData.filter(isAttended).length;
+  const rate     = enrolled > 0 ? Math.round(attended/enrolled*100) : 0;
+  const hours    = filteredData.reduce((s,r)=>s+(parseFloat(r['Duration'])||0),0);
+  const uniqueEmps = new Set(filteredData.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
+  const uniqueCrs  = new Set(filteredData.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
+  const totalSess  = new Set(filteredData.map(r=>{const ct=norm(r['Course Title']),rg=r._region;return ct?`${ct}||${rg}`:null;}).filter(Boolean)).size;
+
+  if (incKpis) {
+    const kpiData = [
+      ['UBL L&D Executive Dashboard — KPI Summary'],
+      ['Generated', new Date().toLocaleString('en-PK')],
+      ['Filter Applied', (document.getElementById('filterMeta')||{}).textContent || 'All data'],
+      [],
+      ['Metric', 'Value'],
+      ['Total Enrolled', enrolled],
+      ['Total Attended', attended],
+      ['Attendance Rate', rate + '%'],
+      ['Training Hours', Math.round(hours)],
+      ['Unique Employees', uniqueEmps],
+      ['Programs Conducted (Sessions)', totalSess],
+      ['Unique Programs', uniqueCrs],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(kpiData);
+    ws['!cols'] = [{wch:30},{wch:15}];
+    XLSX.utils.book_append_sheet(wb, ws, 'KPI Summary');
+  }
+
+  if (incBanking) {
+    const segments = ['ibg','conv','ho'];
+    const segNames = { ibg:'Islamic Banking', conv:'Conventional / Branch', ho:'Head Office' };
+    const bankData = [['Segment','Enrolled','Attended','Rate','Hours','Unique Programs']];
+    segments.forEach(seg => {
+      const d = filteredData.filter(r=>r._bankingType===seg);
+      const e = d.filter(isEnrolled).length;
+      const a = d.filter(isAttended).length;
+      const h = d.reduce((s,r)=>s+(parseFloat(r['Duration'])||0),0);
+      const u = new Set(d.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
+      bankData.push([segNames[seg], e, a, e>0?Math.round(a/e*100)+'%':'—', Math.round(h), u]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(bankData);
+    ws['!cols'] = [{wch:28},{wch:10},{wch:10},{wch:8},{wch:10},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Banking Segments');
+  }
+
+  if (incRegion) {
+    const regions = [...new Set(filteredData.map(r=>r._region).filter(Boolean))].sort();
+    const regData = [['Region','Enrolled','Attended','Rate','Hours','Unique Programs']];
+    regions.forEach(reg => {
+      const d = filteredData.filter(r=>r._region===reg);
+      const e = d.filter(isEnrolled).length;
+      const a = d.filter(isAttended).length;
+      const h = d.reduce((s,r)=>s+(parseFloat(r['Duration'])||0),0);
+      const u = new Set(d.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
+      regData.push([reg, e, a, e>0?Math.round(a/e*100)+'%':'—', Math.round(h), u]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(regData);
+    ws['!cols'] = [{wch:18},{wch:10},{wch:10},{wch:8},{wch:10},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Region Breakdown');
+  }
+
+  if (incCourses) {
+    const courseData = [['Course Title','Category','Training Type','Venue','Enrolled','Attended','Avg Score','Rate','Duration (hrs)']];
+    const courses = [...new Set(filteredData.map(r=>norm(r['Course Title'])).filter(Boolean))];
+    courses.forEach(course => {
+      const d = filteredData.filter(r=>norm(r['Course Title'])===course);
+      const e = d.filter(isEnrolled).length;
+      const a = d.filter(isAttended).length;
+      const scores = d.map(r=>parseFloat(r['Test Score'])).filter(s=>!isNaN(s)&&s>0);
+      const avg = scores.length ? (scores.reduce((x,y)=>x+y,0)/scores.length).toFixed(1) : '—';
+      courseData.push([
+        course,
+        norm((d[0]&&d[0]['Category'])||'')||'—',
+        norm((d[0]&&d[0]['Training Type'])||'')||'—',
+        norm((d[0]&&d[0]['Training Venue'])||'')||'—',
+        e, a, avg,
+        e>0?Math.round(a/e*100)+'%':'—',
+        d.reduce((s,r)=>s+(parseFloat(r['Duration'])||0),0).toFixed(1)
+      ]);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(courseData);
+    ws['!cols'] = [{wch:40},{wch:25},{wch:15},{wch:18},{wch:10},{wch:10},{wch:10},{wch:8},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Course Detail');
+  }
+
+  if (incMonthly) {
+    const months = sortMonths([...new Set(allData.map(r=>r._month||r._uploadMonth).filter(Boolean))]);
+    const monthData = [['Month','Enrolled','Attended','Rate']];
+    months.forEach(m => {
+      const d = filteredData.filter(r=>(r._month||r._uploadMonth)===m);
+      const e = d.filter(isEnrolled).length;
+      const a = d.filter(isAttended).length;
+      monthData.push([m, e, a, e>0?Math.round(a/e*100)+'%':'—']);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(monthData);
+    ws['!cols'] = [{wch:18},{wch:10},{wch:10},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Monthly Trend');
+  }
+
+  if (incGrade) {
+    const GRADE_ORDER=['OG-4','OG-3','OG-2','OG-1','AVP','VP','SVP','EVP','SEVP'];
+    const grades = [...new Set(filteredData.map(r=>norm(r.Grade)).filter(Boolean))];
+    const sorted = [...GRADE_ORDER.filter(g=>grades.includes(g)),...grades.filter(g=>!GRADE_ORDER.includes(g)).sort()];
+    const gradeData = [['Grade','Enrolled','Attended','Rate']];
+    sorted.forEach(g => {
+      const d = filteredData.filter(r=>norm(r.Grade)===g);
+      const e = d.filter(isEnrolled).length;
+      const a = d.filter(isAttended).length;
+      gradeData.push([g, e, a, e>0?Math.round(a/e*100)+'%':'—']);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(gradeData);
+    ws['!cols'] = [{wch:12},{wch:10},{wch:10},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Grade Breakdown');
+  }
+
+  if (wb.SheetNames.length === 0) { alert('Select at least one section.'); return; }
+
+  XLSX.writeFile(wb, `UBL_LD_Summary_Report_${new Date().toISOString().slice(0,10)}.xlsx`);
+  closeReportBuilder();
+}
+
+// ── Course Detail (alias) ─────────────────────────────────────────────────
+function generateDetailReport() {
+  // Force course detail section on, generate summary with just that
+  document.getElementById('rpt-kpis').checked    = true;
+  document.getElementById('rpt-banking').checked = false;
+  document.getElementById('rpt-region').checked  = true;
+  document.getElementById('rpt-courses').checked = true;
+  document.getElementById('rpt-monthly').checked = true;
+  document.getElementById('rpt-grade').checked   = false;
+  generateSummaryReport();
+}
+
 function tryParse(val) {
   try { return val !== null ? JSON.parse(val) : null; } catch(e) { return null; }
 }
 
 </script>
+<!-- REPORT BUILDER MODAL -->
+<div id="reportModal" style="display:none;position:fixed;inset:0;background:rgba(1,40,80,0.55);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(3px)">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:560px;box-shadow:0 24px 80px rgba(1,40,80,0.3);max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-family:'Sora',sans-serif;font-size:18px;font-weight:700;color:#0c1a27">Build Your Report</div>
+      <button onclick="closeReportBuilder()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#7a90a4;line-height:1">✕</button>
+    </div>
+
+    <div style="font-size:12.5px;color:#3d5166;margin-bottom:18px;line-height:1.7;background:#f4f7fb;border-radius:9px;padding:12px 14px">
+      Select what to include in your report. The <strong>Attendance Table</strong> matches the format shown in your stakeholder reports — Programs × Regions with monthly and cumulative columns.
+    </div>
+
+    <!-- Report type -->
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#aabccc;margin-bottom:8px">Report Format</div>
+    <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:1.5px solid #e3e9f2;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;color:#3d5166;flex:1;min-width:140px">
+        <input type="radio" name="rptFormat" value="attendance" checked style="accent-color:#0175C0"> Attendance Table
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:1.5px solid #e3e9f2;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;color:#3d5166;flex:1;min-width:140px">
+        <input type="radio" name="rptFormat" value="summary" style="accent-color:#0175C0"> KPI Summary
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:1.5px solid #e3e9f2;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;color:#3d5166;flex:1;min-width:140px">
+        <input type="radio" name="rptFormat" value="detail" style="accent-color:#0175C0"> Course Detail
+      </label>
+    </div>
+
+    <!-- Sections -->
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#aabccc;margin-bottom:8px">Sections to Include</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px" id="rptSections">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#3d5166;cursor:pointer"><input type="checkbox" id="rpt-kpis" checked style="accent-color:#0175C0"> KPI Summary</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#3d5166;cursor:pointer"><input type="checkbox" id="rpt-banking" checked style="accent-color:#0175C0"> Banking Segments</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#3d5166;cursor:pointer"><input type="checkbox" id="rpt-region" checked style="accent-color:#0175C0"> Region Breakdown</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#3d5166;cursor:pointer"><input type="checkbox" id="rpt-courses" checked style="accent-color:#0175C0"> Course Table</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#3d5166;cursor:pointer"><input type="checkbox" id="rpt-monthly" style="accent-color:#0175C0"> Monthly Trend</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#3d5166;cursor:pointer"><input type="checkbox" id="rpt-grade" style="accent-color:#0175C0"> Grade Breakdown</label>
+    </div>
+
+    <!-- Period selection for attendance table -->
+    <div id="rptPeriodWrap">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#aabccc;margin-bottom:8px">Period Columns <span style="font-weight:400;font-size:10px">(for Attendance Table)</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:7px;padding:7px 12px;border:1.5px solid #e3e9f2;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:#3d5166">
+          <input type="checkbox" id="rpt-cur-month" checked style="accent-color:#0175C0"> Current Month
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;padding:7px 12px;border:1.5px solid #e3e9f2;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;color:#3d5166">
+          <input type="checkbox" id="rpt-ytd" checked style="accent-color:#0175C0"> Jan–<span id="rptYtdLabel">Mar</span> (YTD)
+        </label>
+      </div>
+    </div>
+
+    <!-- File format -->
+    <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#aabccc;margin-bottom:8px">Export As</div>
+    <div style="display:flex;gap:8px;margin-bottom:24px">
+      <label style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:1.5px solid #e3e9f2;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;color:#3d5166;flex:1">
+        <input type="radio" name="rptFile" value="xlsx" checked style="accent-color:#0175C0"> Excel (.xlsx)
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;padding:9px 14px;border:1.5px solid #e3e9f2;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600;color:#3d5166;flex:1">
+        <input type="radio" name="rptFile" value="pdf" style="accent-color:#0175C0"> Print / PDF
+      </label>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button onclick="generateReport()" style="flex:1;padding:12px;background:#0175C0;color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(1,117,192,0.25)">
+        Generate Report
+      </button>
+      <button onclick="closeReportBuilder()" style="padding:12px 20px;background:#f4f7fb;color:#3d5166;border:1px solid #e3e9f2;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
