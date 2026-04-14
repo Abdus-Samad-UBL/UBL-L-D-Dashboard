@@ -229,7 +229,6 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
     <div class="stat-card"><div class="stat-val" id="repoRecords">0</div><div class="stat-lbl">Total Records</div></div>
     <div class="stat-card"><div class="stat-val" id="repoLastUpload">—</div><div class="stat-lbl">Last Upload</div></div>
     <div class="stat-card"><div class="stat-val" id="repoCourses">0</div><div class="stat-lbl">Unique Courses</div></div>
-    <div class="stat-card" id="storageCard"><div class="stat-val" id="repoStorage" style="font-size:18px">—</div><div class="stat-lbl">Storage Used</div></div>
   </div>
 
   <div class="sec">Upload New Monthly File</div>
@@ -271,12 +270,7 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
     Save to Repository & Update Dashboard
   </button>
 
-  <div class="sec" style="margin-top:6px">
-    Monthly Repository
-    <button onclick="diagStorage()" style="margin-left:auto;padding:3px 12px;font-size:11px;font-weight:600;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif">🔍 Diagnose Storage</button>
-    <button onclick="repairIndex()" style="padding:3px 12px;font-size:11px;font-weight:600;background:var(--ubl-tint);color:var(--ubl);border:1px solid var(--border2);border-radius:7px;cursor:pointer;font-family:'Inter',sans-serif">🔧 Repair Index</button>
-  </div>
-  <div class="status-box" id="diagStatus" style="margin-bottom:10px"></div>
+  <div class="sec" style="margin-top:6px">Monthly Repository</div>
   <div class="card">
     <table class="tbl">
       <thead><tr><th>Month</th><th>Records</th><th>Uploaded At</th><th>Courses</th><th>Clusters</th><th>Action</th></tr></thead>
@@ -520,25 +514,6 @@ textarea.field-inp{resize:vertical;min-height:70px;font-family:'Inter',sans-seri
 // ════════════════════════════════════════════════════════
 // ── Load ALL training data from per-month localStorage keys ──────────────
 // Merges per-month keys (new format) + legacy blob (old format) seamlessly
-function loadAllTrainingData() {
-  const rows = [];
-  const seen = new Set();
-  try {
-    const idx = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
-    idx.forEach(m => {
-      try { const chunk = JSON.parse(localStorage.getItem(m.key)||'[]'); rows.push(...chunk); seen.add(m.key); } catch(e) {}
-    });
-  } catch(e) {}
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index' && !seen.has(k)) {
-      try { const chunk = JSON.parse(localStorage.getItem(k)||'[]'); if(chunk.length) rows.push(...chunk); } catch(e) {}
-    }
-  }
-  try { const leg = JSON.parse(localStorage.getItem('ubl_ld_data')||'[]'); if(leg.length) rows.push(...leg); } catch(e) {}
-  return rows;
-}
-
 
 async function syncTrainingInChunks(label, rows) {
   const CHUNK = 500;
@@ -610,6 +585,20 @@ function getAppsUrl() {
 }
 
 // Send payload to Apps Script. Returns promise resolving to response JSON.
+async function fetchFromSheets(action, params) {
+  const url = getAppsUrl();
+  if (!url) return { success: false, error: 'No URL' };
+  try {
+    let fetchUrl = `${url}?action=${action}`;
+    if (params) Object.keys(params).forEach(k => fetchUrl += `&${k}=${encodeURIComponent(params[k])}`);
+    const res  = await fetch(fetchUrl);
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e) { return { success:false, error:'Non-JSON response' }; }
+  } catch(e) {
+    return { success: false, error: e.message };
+  }
+}
+
 async function syncToSheets(payload) {
   const url = getAppsUrl();
   if (!url) return { success: false, error: 'No URL configured' };
@@ -829,45 +818,9 @@ async function processTrainingData(){
 
   const tagged = parsedTrainingRows.map(r=>({...r, _uploadMonth:label, _uploadedAt:new Date().toISOString()}));
 
-  // ── Save to localStorage (instant load on dashboard) ────────────────────
-  const KEEP = ['Region','Employee No.','Functional Title','Grade','Group',
-                'Cluster','Attendance Status','Course Title','Training Type',
-                'Test Score','Duration','Training Venue','Category',
-                '_month','_quarter','_uploadMonth'];
+  // Data goes to Google Sheets only — no localStorage for training data
 
-  const safeSlim = tagged.map(row => {
-    const s = {};
-    KEEP.forEach(k => {
-      const v = row[k];
-      if (v === null || v === undefined) s[k] = '';
-      else if (v instanceof Date) s[k] = v.toISOString();
-      else if (typeof v === 'object') s[k] = String(v);
-      else s[k] = v;
-    });
-    return s;
-  });
-
-  const monthKey = 'ubl_td_' + label.replace(/[^a-z0-9]/gi, '_');
-  try {
-    localStorage.setItem(monthKey, JSON.stringify(safeSlim));
-    // Update index (upsert)
-    let tdIndex = [];
-    try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
-    tdIndex = tdIndex.filter(m => m.label !== label);
-    tdIndex.push({ label, key: monthKey });
-    localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex));
-    console.log(`Saved ${safeSlim.length} rows to localStorage key ${monthKey}`);
-  } catch(storageErr) {
-    console.warn('localStorage save failed (storage full?):', storageErr.message);
-  }
-
-  // Save meta
-  let meta = []; try { meta = JSON.parse(localStorage.getItem('ubl_ld_meta') || '[]'); } catch(e) {}
-  meta = meta.filter(m => m.month !== label);
-  const courses  = new Set(tagged.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
-  const clusters = [...new Set(tagged.map(r=>norm(r['Cluster'])).filter(Boolean))].join(', ');
-  meta.push({ month:label, count:tagged.length, uploadedAt:new Date().toLocaleString('en-PK'), courses, clusters });
-  localStorage.setItem('ubl_ld_meta', JSON.stringify(meta));
+  // Meta is managed by Google Sheets (Upload Log sheet)
 
   // ── Sync to Google Sheets ─────────────────────────────────────────────────
   showStatus('trainingStatus','info','Syncing to Google Sheets…',
@@ -893,64 +846,38 @@ async function processTrainingData(){
 }
 
 function refreshTrainingRepo(){
-  let meta=[],total=0,courses=0;
-  try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
-  try{
-    const rows = loadAllTrainingData();
-    total = rows.length;
-    courses = new Set(rows.map(r=>norm(r['Course Title'])).filter(Boolean)).size;
-  }catch(e){}
-  document.getElementById('repoMonths').textContent=meta.length;
-  document.getElementById('repoRecords').textContent=total.toLocaleString();
-  document.getElementById('repoLastUpload').textContent=meta.length?meta[meta.length-1].month:'—';
-  document.getElementById('repoCourses').textContent=courses.toLocaleString();
-  // Show storage usage
-  try {
-    let used = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k) used += (localStorage.getItem(k)||'').length * 2; // UTF-16
-    }
-    const usedMB = (used / 1024 / 1024).toFixed(2);
-    const pct = Math.round(used / (5*1024*1024) * 100);
-    const col = pct > 85 ? 'var(--red)' : pct > 65 ? 'var(--amber)' : 'var(--ubl)';
-    const el = document.getElementById('repoStorage');
-    if (el) { el.textContent = usedMB + ' MB'; el.style.color = col; }
-    const card = document.getElementById('storageCard');
-    if (card) card.title = `${pct}% of ~5MB browser limit used`;
-  } catch(e) {}
-  const tbody=document.getElementById('trainingRepoBody');
-  const empty=document.getElementById('trainingRepoEmpty');
-  if(!meta.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display='none';
-  tbody.innerHTML=[...meta].reverse().map(m=>`
-    <tr>
-      <td><strong>${m.month}</strong></td>
-      <td>${m.count.toLocaleString()}</td>
-      <td>${m.uploadedAt}</td>
-      <td>${m.courses||'—'}</td>
-      <td>${m.clusters||'—'}</td>
-      <td><button class="del-btn" onclick="deleteTrainingMonth('${m.month}')">Delete</button></td>
-    </tr>`).join('');
+  fetchFromSheets('getMeta').then(r => {
+    const meta  = (r && r.success && r.meta) ? r.meta : [];
+    const total = meta.reduce((s,m) => s + (parseInt(m.count)||0), 0);
+    document.getElementById('repoMonths').textContent      = meta.length;
+    document.getElementById('repoRecords').textContent     = total.toLocaleString();
+    document.getElementById('repoLastUpload').textContent  = meta.length ? meta[meta.length-1].month : '—';
+    document.getElementById('repoCourses').textContent     = '—';
+    const tbody = document.getElementById('trainingRepoBody');
+    const empty = document.getElementById('trainingRepoEmpty');
+    if (!meta.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    tbody.innerHTML = [...meta].reverse().map(m => `
+      <tr>
+        <td><strong>${m.month}</strong></td>
+        <td>${(m.count||0).toLocaleString()}</td>
+        <td>${m.uploadedAt||'—'}</td>
+        <td>${m.courses||'—'}</td>
+        <td>${m.clusters||'—'}</td>
+        <td><button class="del-btn" onclick="deleteTrainingMonth('${m.month}')">Delete</button></td>
+      </tr>`).join('');
+  }).catch(() => {});
 }
 
 async function deleteTrainingMonth(month){
-  if(!confirm(`Delete all training data for "${month}"?\n\nThis will delete from both this browser AND Google Sheets.`)) return;
-  // Remove from localStorage
-  const monthKey = 'ubl_td_' + month.replace(/[^a-z0-9]/gi, '_');
-  localStorage.removeItem(monthKey);
-  let tdIndex = [];
-  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
-  localStorage.setItem('ubl_td_index', JSON.stringify(tdIndex.filter(m => m.label !== month)));
-  let meta=[]; try{ meta=JSON.parse(localStorage.getItem('ubl_ld_meta')||'[]'); }catch(e){}
-  localStorage.setItem('ubl_ld_meta', JSON.stringify(meta.filter(m=>m.month!==month)));
-  refreshTrainingRepo();
-  // Delete from Google Sheets
+  if(!confirm(`Delete all training data for "${month}"?\n\nThis will permanently delete from Google Sheets and cannot be undone.`)) return;
+  showStatus('trainingStatus','info','Deleting…',`Removing "${month}" from Google Sheets…`);
   const result = await syncToSheets({ action:'delete', monthLabel:month });
   if (result && result.success) {
-    showStatus('trainingStatus','ok','✓ Deleted',`"${month}" removed from browser storage and Google Sheets.`);
+    showStatus('trainingStatus','ok','✓ Deleted',`"${month}" permanently removed from Google Sheets.`);
+    refreshTrainingRepo();
   } else {
-    showStatus('trainingStatus','warn','⚠ Partially Deleted',`Removed from browser but Sheets deletion failed: ${(result && result.error ? result.error : 'unknown error')}`);
+    showStatus('trainingStatus','err','✗ Delete Failed',`${(result && result.error ? result.error : 'Could not reach Google Sheets. Check your connection.')}`);
   }
 }
 
@@ -1375,12 +1302,16 @@ function refreshProgList(){
 // ════════════════════════════════════════════════════════
 // EXPORT PROGRAM REPORT
 // ════════════════════════════════════════════════════════
-function exportProgramReport(progId){
+async function exportProgramReport(progId){
   const prog = getPrograms().find(p=>p.id===progId);
   if(!prog){ alert('Program not found.'); return; }
 
   const hcRows     = loadHcRows();
-  const trainingData = loadAllTrainingData();  // reads all months, not just legacy blob
+  // Fetch training data from Sheets for export
+  showStatus('progAddStatus','info','Loading…','Fetching training data from Google Sheets for export…');
+  const tdRes = await fetchFromSheets('getTrainingData');
+  if (!tdRes.success) { alert('Could not load training data from Sheets: ' + tdRes.error); return; }
+  const trainingData = tdRes.rows || [];
   const resignedIds  = new Set(JSON.parse(localStorage.getItem('ubl_resigned_ids')||'[]'));
   const hcMeta     = JSON.parse(localStorage.getItem('ubl_hc_active')||'null');
 
@@ -1613,80 +1544,16 @@ function refreshAppsScriptDisplay() {
   }
 }
 
-// ── Storage diagnostics ──────────────────────────────────────────────────
-function diagStorage() {
-  const idx  = JSON.parse(localStorage.getItem('ubl_td_index') || '[]');
-  const legacy = JSON.parse(localStorage.getItem('ubl_ld_data') || '[]');
-  let lines = [`<strong>Index entries: ${idx.length}</strong>`];
-  let total = 0;
-  idx.forEach(m => {
-    try {
-      const rows = JSON.parse(localStorage.getItem(m.key) || '[]');
-      lines.push(`• ${m.label} → key: ${m.key} → <strong>${rows.length} rows</strong>`);
-      total += rows.length;
-    } catch(e) {
-      lines.push(`• ${m.label} → key: ${m.key} → <span style="color:var(--red)">ERROR reading key</span>`);
-    }
-  });
-  if (legacy.length) lines.push(`• Legacy blob (ubl_ld_data): ${legacy.length} rows`);
-  lines.push(`<strong>Total rows visible to dashboard: ${total + legacy.length}</strong>`);
-
-  // Scan all keys for orphaned ubl_td_ keys not in index
-  const indexedKeys = new Set(idx.map(m => m.key));
-  const orphans = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index' && !indexedKeys.has(k)) {
-      try {
-        const rows = JSON.parse(localStorage.getItem(k) || '[]');
-        orphans.push({ key: k, count: rows.length });
-      } catch(e) {}
-    }
-  }
-  if (orphans.length) {
-    lines.push(`<span style="color:var(--red)"><strong>⚠ ${orphans.length} orphaned key(s) found (not in index — invisible to dashboard):</strong></span>`);
-    orphans.forEach(o => lines.push(`  • ${o.key}: ${o.count} rows — click Repair Index to recover`));
-  } else {
-    lines.push('<span style="color:var(--green)">✓ No orphaned keys</span>');
-  }
-  showStatus('diagStatus', 'info', '📊 Storage Diagnostic', lines.join('<br>'));
-}
-
-// ── Repair index — scan all ubl_td_ keys and rebuild index ───────────────
-function repairIndex() {
-  const existing = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith('ubl_td_') && k !== 'ubl_td_index') {
-      try {
-        const rows = JSON.parse(localStorage.getItem(k) || '[]');
-        if (rows.length) {
-          // Extract label from rows
-          const label = rows[0]._uploadMonth || rows[0]._month || k.replace('ubl_td_','').replace(/_/g,' ');
-          existing.push({ label, key: k });
-        }
-      } catch(e) {}
-    }
-  }
-  localStorage.setItem('ubl_td_index', JSON.stringify(existing));
-  showStatus('diagStatus', 'ok', '✓ Index Rebuilt', `Found and registered ${existing.length} month(s): ${existing.map(m=>m.label).join(', ')}`);
-  refreshTrainingRepo();
-}
 
 async function clearTrainingData(){
-  if(!confirm('Clear ALL training data?\n\nThis will permanently delete everything from both browser storage AND Google Sheets. This cannot be undone.')) return;
-  let tdIndex = [];
-  try { tdIndex = JSON.parse(localStorage.getItem('ubl_td_index') || '[]'); } catch(e) {}
-  tdIndex.forEach(m => localStorage.removeItem(m.key));
-  localStorage.removeItem('ubl_td_index');
-  localStorage.removeItem('ubl_ld_data');
-  localStorage.removeItem('ubl_ld_meta');
-  refreshTrainingRepo();
+  if(!confirm('Clear ALL training data?\n\nThis permanently deletes everything from Google Sheets and cannot be undone.')) return;
+  showStatus('trainingStatus','info','Clearing…','Removing all training data from Google Sheets…');
   const result = await syncToSheets({action:'clearAll'});
   if (result && result.success) {
-    showStatus('trainingStatus','ok','✓ Cleared','All training data removed from browser and Google Sheets.');
+    showStatus('trainingStatus','ok','✓ Cleared','All training data permanently removed from Google Sheets.');
+    refreshTrainingRepo();
   } else {
-    showStatus('trainingStatus','warn','⚠ Partially Cleared',`Browser cleared but Sheets deletion failed: ${(result && result.error ? result.error : 'unknown error')}`);
+    showStatus('trainingStatus','err','✗ Clear Failed',`${(result && result.error ? result.error : 'Could not reach Google Sheets.')}`);
   }
 }
 async function clearHeadcount(){
