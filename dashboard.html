@@ -9,11 +9,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
-/* ═══════════════════════════════════════════════
-   DESIGN TOKENS
-═══════════════════════════════════════════════ */
+
 :root {
-  /* Brand */
+
   --ubl:        #0175C0;
   --ubl-mid:    #0190e8;
   --ubl-dark:   #015494;
@@ -22,7 +20,6 @@
   --ubl-tint:   #e0f0fb;
   --ubl-glass:  rgba(1,117,192,0.08);
 
-  /* Segment colours */
   --ibg:        #0d7a50;
   --ibg-tint:   #edf7f3;
   --ibg-mid:    #12a06a;
@@ -33,7 +30,6 @@
   --ho-tint:    #f2effe;
   --ho-mid:     #6b4dcf;
 
-  /* Neutrals */
   --bg:         #f4f7fb;
   --bg-alt:     #edf1f7;
   --surface:    #ffffff;
@@ -41,13 +37,11 @@
   --border:     #e3e9f2;
   --border-2:   #d0daea;
 
-  /* Text */
   --text:       #0c1a27;
   --text-2:     #3d5166;
   --text-3:     #7a90a4;
   --text-4:     #aabccc;
 
-  /* Status */
   --green:      #0a8f5c;
   --green-tint: #eafaf3;
   --red:        #d03030;
@@ -55,23 +49,18 @@
   --amber:      #c47500;
   --amber-tint: #fff8ec;
 
-  /* Shadows */
   --sh-xs:  0 1px 3px rgba(1,45,82,0.06);
   --sh-sm:  0 2px 8px rgba(1,45,82,0.08), 0 1px 2px rgba(1,45,82,0.04);
   --sh-md:  0 6px 24px rgba(1,45,82,0.10), 0 2px 6px rgba(1,45,82,0.06);
   --sh-lg:  0 16px 48px rgba(1,45,82,0.14), 0 4px 12px rgba(1,45,82,0.08);
   --sh-ubl: 0 8px 24px rgba(1,117,192,0.28);
 
-  /* Geometry */
   --r-sm:   8px;
   --r-md:   12px;
   --r-lg:   16px;
   --r-xl:   20px;
 }
 
-/* ═══════════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
@@ -84,7 +73,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Subtle dot grid background */
 body::before {
   content: '';
   position: fixed;
@@ -95,9 +83,6 @@ body::before {
   z-index: 0;
 }
 
-/* ═══════════════════════════════════════════════
-   TOPBAR
-═══════════════════════════════════════════════ */
 .topbar {
   position: sticky; top: 0; z-index: 200;
   height: 60px;
@@ -108,7 +93,6 @@ body::before {
   box-shadow: 0 1px 0 rgba(255,255,255,0.08), var(--sh-md);
 }
 
-/* subtle shimmer line at top */
 .topbar::before {
   content: '';
   position: absolute;
@@ -180,9 +164,6 @@ body::before {
 }
 .tb-btn-solid:hover { background: var(--ubl-tint); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 
-/* ═══════════════════════════════════════════════
-   FILTER BAR
-═══════════════════════════════════════════════ */
 .filter-bar {
   position: sticky; top: 60px; z-index: 100;
   background: rgba(255,255,255,0.96);
@@ -249,18 +230,12 @@ body::before {
 .fl-meta    { font-size: 11px; color: var(--text-4); white-space: nowrap; }
 .fl-meta strong { color: var(--ubl); font-weight: 700; }
 
-/* ═══════════════════════════════════════════════
-   MAIN LAYOUT
-═══════════════════════════════════════════════ */
 .main {
   position: relative; z-index: 1;
   padding: 24px 28px 40px;
   max-width: 1680px; margin: 0 auto;
 }
 
-/* ═══════════════════════════════════════════════
-   EMPTY STATE
-═══════════════════════════════════════════════ */
 .empty-state {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; min-height: 58vh; gap: 18px; text-align: center;
@@ -287,9 +262,6 @@ body::before {
 }
 .empty-cta:hover { background: var(--ubl-dark); transform: translateY(-2px); box-shadow: 0 10px 28px rgba(1,117,192,0.36); }
 
-/* ═══════════════════════════════════════════════
-   SECTION HEADERS
-═══════════════════════════════════════════════ */
 .sec {
   display: flex; align-items: center; justify-content: space-between;
   margin: 26px 0 13px;
@@ -309,9 +281,6 @@ body::before {
 }
 .sec-note { font-size: 11px; color: var(--text-4); }
 
-/* ═══════════════════════════════════════════════
-   KPI STRIP
-═══════════════════════════════════════════════ */
 .kpi-strip { display: grid; grid-template-columns: repeat(5,1fr); gap: 13px; }
 
 @keyframes slideUp {
@@ -331,14 +300,13 @@ body::before {
 }
 .kpi:hover { box-shadow: var(--sh-md); transform: translateY(-3px); }
 
-/* Accent stripe */
 .kpi::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: var(--k-color, var(--ubl));
   border-radius: var(--r-lg) var(--r-lg) 0 0;
 }
-/* Soft glow blob */
+
 .kpi::after {
   content: '';
   position: absolute; top: -20px; right: -20px;
@@ -382,9 +350,6 @@ body::before {
   border-top: 1px solid var(--border);
 }
 
-/* ═══════════════════════════════════════════════
-   INFO CHIPS (secondary KPIs)
-═══════════════════════════════════════════════ */
 .info-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; margin-top: 13px; }
 .info-chip {
   background: linear-gradient(135deg, var(--ubl-deeper) 0%, var(--ubl-dark) 100%);
@@ -398,9 +363,6 @@ body::before {
 .ic-val   { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800; color: #fff; line-height: 1; }
 .ic-lbl   { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
 
-/* ═══════════════════════════════════════════════
-   BANKING SEGMENT CARDS
-═══════════════════════════════════════════════ */
 .bk-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
 
 .bk-card {
@@ -414,7 +376,6 @@ body::before {
 }
 .bk-card:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
 
-/* diagonal stripe texture */
 .bk-card::before {
   content: '';
   position: absolute; top: -40px; right: -40px;
@@ -440,9 +401,6 @@ body::before {
 .bk-st-v { font-size: 14px; font-weight: 700; color: var(--bk-color); line-height: 1; }
 .bk-st-l { font-size: 9.5px; color: var(--text-3); margin-top: 2px; }
 
-/* ═══════════════════════════════════════════════
-   REGION CARDS (L&D Centers)
-═══════════════════════════════════════════════ */
 .rg-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 13px; }
 
 .rg-card {
@@ -457,14 +415,13 @@ body::before {
 }
 .rg-card:hover { transform: translateY(-2px); box-shadow: var(--sh-md); }
 
-.rg-card::before { /* left accent bar */
+.rg-card::before { 
   content: '';
   position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
   background: linear-gradient(180deg, var(--rg-color), color-mix(in srgb, var(--rg-color) 60%, transparent));
   border-radius: var(--r-lg) 0 0 var(--r-lg);
 }
 
-/* big faded letter watermark */
 .rg-card::after {
   content: attr(data-initial);
   position: absolute; right: 12px; bottom: -8px;
@@ -488,9 +445,6 @@ body::before {
 .rg-fill  { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--rg-color), color-mix(in srgb, var(--rg-color) 75%, #fff)); transition: width 1s cubic-bezier(0.22,1,0.36,1); }
 .rg-rate  { font-size: 12px; font-weight: 700; color: var(--rg-color); min-width: 36px; text-align: right; }
 
-/* ═══════════════════════════════════════════════
-   CLUSTER CARDS
-═══════════════════════════════════════════════ */
 .cl-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 13px; }
 
 .cl-card {
@@ -520,9 +474,6 @@ body::before {
 .cl-st-v { font-size: 13px; font-weight: 700; color: var(--cl-color, var(--ubl)); }
 .cl-st-l { font-size: 9px; color: var(--text-4); margin-top: 1px; }
 
-/* ═══════════════════════════════════════════════
-   CHART CARDS
-═══════════════════════════════════════════════ */
 .g2   { display: grid; grid-template-columns: 1.65fr 1fr; gap: 13px; margin-bottom: 13px; }
 .g3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; margin-bottom: 13px; }
 .g2eq { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-bottom: 13px; }
@@ -548,9 +499,6 @@ body::before {
   white-space: nowrap; flex-shrink: 0;
 }
 
-/* ═══════════════════════════════════════════════
-   TABLES
-═══════════════════════════════════════════════ */
 .tbl { width: 100%; border-collapse: collapse; }
 
 .tbl thead th {
@@ -577,20 +525,17 @@ body::before {
   max-width: 210px;
 }
 
-/* Progress bar in table */
 .prog { display: flex; align-items: center; gap: 8px; }
 .prog-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; min-width: 48px; }
 .prog-fill  { height: 100%; border-radius: 3px; }
 .prog-pct   { font-size: 11px; font-weight: 700; min-width: 30px; text-align: right; }
 
-/* Grade pill */
 .g-pill {
   display: inline-block; padding: 2px 9px;
   border-radius: 20px; font-size: 11px; font-weight: 700;
   background: var(--ubl-tint); color: var(--ubl);
 }
 
-/* Category / module tags */
 .cat-tag {
   display: inline-block; padding: 2px 8px;
   border-radius: 6px; font-size: 10.5px; font-weight: 600;
@@ -605,9 +550,6 @@ body::before {
 .na-tag { font-size: 11px; color: var(--text-4); font-style: italic; }
 .na-pill { font-size: 11px; color: var(--text-4); font-style: italic; background: var(--bg-alt); padding: 1px 7px; border-radius: 10px; }
 
-/* ═══════════════════════════════════════════════
-   HISTORY CHIPS
-═══════════════════════════════════════════════ */
 .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
 .chip {
   padding: 4px 13px; border-radius: 20px;
@@ -618,9 +560,6 @@ body::before {
 }
 .chip:hover, .chip.on { background: var(--ubl); color: #fff; border-color: var(--ubl); box-shadow: 0 2px 8px rgba(1,117,192,0.3); }
 
-/* ═══════════════════════════════════════════════
-   PRINT
-═══════════════════════════════════════════════ */
 @media print {
   body::before { display: none; }
   .topbar, .filter-bar, .tb-btn, .empty-cta { display: none !important; }
@@ -630,18 +569,12 @@ body::before {
   .kpi-strip { grid-template-columns: repeat(5,1fr) !important; }
 }
 
-/* ═══════════════════════════════════════════════
-   SCROLLBAR
-═══════════════════════════════════════════════ */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 canvas { display: block; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
 
-/* ═══════════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════════ */
 @media (max-width:1200px) {
   .kpi-strip { grid-template-columns: repeat(3,1fr); }
   .g2, .g3, .bk-grid, .rg-row { grid-template-columns: 1fr; }
@@ -653,9 +586,6 @@ canvas { display: block; }
   .info-row, .g2eq { grid-template-columns: 1fr; }
 }
 
-/* ═══════════════════════════════════════════════
-   PROGRAM PROGRESS
-═══════════════════════════════════════════════ */
 .pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px; }
 
 .pp-card {
@@ -671,7 +601,6 @@ canvas { display: block; }
 .pp-name { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
 .pp-cat  { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; background: var(--ubl-tint); color: var(--ubl); }
 
-/* Big coverage ring */
 .pp-ring-wrap { display: flex; align-items: center; gap: 20px; margin-bottom: 16px; }
 .pp-ring { position: relative; width: 90px; height: 90px; flex-shrink: 0; }
 .pp-ring svg { transform: rotate(-90deg); }
@@ -690,7 +619,6 @@ canvas { display: block; }
 .pp-stat.pend  .pp-stat-v { color: var(--amber); }
 .pp-stat.total .pp-stat-v { color: var(--ubl); }
 
-/* Phase breakdown */
 .pp-phases { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
 .pp-phase-row { display: flex; align-items: center; gap: 10px; }
 .pp-phase-lbl { font-size: 11.5px; font-weight: 600; color: var(--text2); min-width: 90px; }
@@ -699,13 +627,11 @@ canvas { display: block; }
 .pp-phase-pct   { font-size: 11.5px; font-weight: 700; color: var(--ubl); min-width: 38px; text-align: right; }
 .pp-phase-count { font-size: 10.5px; color: var(--text4); min-width: 60px; text-align: right; }
 
-/* MoM comparison */
 .pp-mom { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding: 8px 12px; background: var(--bg); border-radius: 8px; font-size: 12px; }
 .pp-mom-arrow { font-size: 14px; }
 .pp-mom-text { color: var(--text2); }
 .pp-mom-val { font-weight: 700; }
 
-/* Pending list toggle */
 .pp-pending-toggle {
   display: flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 600; color: var(--ubl);
@@ -725,7 +651,6 @@ canvas { display: block; }
 </head>
 <body>
 
-<!-- ══ TOPBAR ══════════════════════════════════════════ -->
 <header class="topbar">
   <div class="tb-left">
     <a class="logo-wrap" href="#">
@@ -758,7 +683,6 @@ canvas { display: block; }
   </div>
 </header>
 
-<!-- ══ FILTER BAR ══════════════════════════════════════ -->
 <div class="filter-bar">
 
   <div class="fl-group">
@@ -822,16 +746,12 @@ canvas { display: block; }
     </select>
   </div>
 
-
-
   <div class="fl-spacer"></div>
   <div class="fl-meta" id="filterMeta">Upload data to begin</div>
 </div>
 
-<!-- ══ MAIN ════════════════════════════════════════════ -->
 <main class="main">
 
-  <!-- EMPTY STATE -->
   <div class="empty-state" id="emptyState">
     <div class="empty-orb">📊</div>
     <div class="empty-h">No Training Data Loaded</div>
@@ -842,10 +762,8 @@ canvas { display: block; }
     </a>
   </div>
 
-  <!-- DASHBOARD CONTENT -->
   <div id="dashContent" style="display:none">
 
-    <!-- ── KPIs ─────────────────────────────────────── -->
     <div class="sec">
       <span class="sec-title">Key Performance Indicators</span>
       <span class="sec-note" id="kpiPeriodLabel"></span>
@@ -913,35 +831,30 @@ canvas { display: block; }
       </div>
     </div>
 
-    <!-- ── PROGRAMME COVERAGE TRACKER ─────────────────── -->
     <div class="sec" id="progSec" style="display:none;margin-top:22px">
       <span class="sec-title">Programme Coverage Tracker</span>
       <span class="sec-note">Cross-referenced vs headcount · Resigned excluded · Islamic &amp; Conventional split · Go to Admin → Program Config to add programmes</span>
     </div>
     <div id="progProgressGrid" style="display:none;margin-bottom:6px"></div>
 
-    <!-- ── BANKING SEGMENTS ──────────────────────────── -->
     <div class="sec" style="margin-top:28px">
       <span class="sec-title">Banking Segment Breakdown</span>
       <span class="sec-note">IBG cluster / Islamic Banking group = Islamic &nbsp;·&nbsp; Branch Banking = Conventional &nbsp;·&nbsp; All others = Head Office</span>
     </div>
     <div class="bk-grid" id="bankingGrid"></div>
 
-    <!-- ── L&D REGION PERFORMANCE ────────────────────── -->
     <div class="sec">
       <span class="sec-title">L&amp;D Region Performance</span>
       <span class="sec-note">South · Central · North — where training was delivered, independent of employee home cluster</span>
     </div>
     <div class="rg-row" id="regionRow"></div>
 
-    <!-- ── CLUSTER PERFORMANCE ───────────────────────── -->
     <div class="sec">
       <span class="sec-title">Cluster Performance</span>
       <span class="sec-note">Employee home cluster — where employees are posted, not where they trained</span>
     </div>
     <div class="cl-row" id="clusterRow"></div>
 
-    <!-- ── TRAINING ACTIVITY CHARTS ─────────────────── -->
     <div class="sec"><span class="sec-title">Training Activity</span></div>
     <div class="g2">
       <div class="card">
@@ -961,14 +874,12 @@ canvas { display: block; }
       <div class="card"><div class="card-head"><div><div class="card-title">Avg Test Score by Category</div><div class="card-sub">Average participant test score per category</div></div></div><div style="position:relative;height:175px"><canvas id="scoreChart" height="175"></canvas></div></div>
     </div>
 
-    <!-- ── ATTENDANCE ANALYSIS ───────────────────────── -->
     <div class="sec"><span class="sec-title">Attendance Analysis</span></div>
     <div class="g2eq">
       <div class="card"><div class="card-head"><div><div class="card-title">Attendance by Grade</div><div class="card-sub">Enrolled vs attended · OG-4 through SEVP-II</div></div></div><div style="position:relative;height:215px"><canvas id="gradeChart" height="215"></canvas></div></div>
       <div class="card"><div class="card-head"><div><div class="card-title">Attendance by Cluster</div><div class="card-sub">Enrolled vs attended per employee home cluster</div></div></div><div style="position:relative;height:215px"><canvas id="clusterAttChart" height="215"></canvas></div></div>
     </div>
 
-    <!-- ── COURSE TABLE ──────────────────────────────── -->
     <div class="sec"><span class="sec-title">Course &amp; Module Analytics</span></div>
     <div class="card" style="margin-bottom:13px">
       <div class="card-head">
@@ -989,7 +900,6 @@ canvas { display: block; }
       </div>
     </div>
 
-    <!-- ── GRADE TABLE + HISTORY ─────────────────────── -->
     <div class="g2eq" style="margin-bottom:13px">
       <div class="card">
         <div class="card-head"><div><div class="card-title">Grade-wise Participation</div><div class="card-sub">Unique employees per grade regardless of course count</div></div></div>
@@ -1004,44 +914,24 @@ canvas { display: block; }
       </div>
     </div>
 
-
-
-  </div><!-- /dashContent -->
+  </div>
 </main>
 
 <script>
-// ════════════════════════════════════════════════════════
-// BUSINESS LOGIC — all 5 rules encoded here
-// ════════════════════════════════════════════════════════
 
-/**
- * RULE 1: Clean cluster name — strip the word "Cluster" so it never
- * appears twice. E.g. "South Cluster" → "South", "Karachi Cluster" → "Karachi"
- * "Karachi IBG Cluster" → "Karachi IBG"
- */
 function cleanCluster(raw) {
   if (!raw) return '';
-  // Remove all occurrences of the word "cluster" (case-insensitive) then tidy
+
   const stripped = String(raw).trim().replace(/\bcluster\b\s*/gi, '').trim();
   return stripped || String(raw).trim();
 }
 
-// Strip "Region" word from values so "South Region" → "South"
 function cleanRegion(raw) {
   if (!raw) return '';
   const stripped = String(raw).trim().replace(/\bregion\b\s*/gi, '').trim();
   return stripped || String(raw).trim();
 }
 
-/**
- * RULE 2: Determine banking segment
- * Priority:
- *   (a) Cluster contains "IBG"         → 'ibg'
- *   (b) Group === "Islamic Banking"     → 'ibg'
- *   (c) Group === "Branch Banking"      → 'conv'
- *   (d) Group is anything else          → 'ho'  (Head Office / Back Office)
- *   (e) Unknown/blank                   → 'conv' (safe fallback)
- */
 function getBankingType(r) {
   const cluster = norm(r['Cluster']);
   const group   = norm(r['Group']).toLowerCase();
@@ -1049,22 +939,17 @@ function getBankingType(r) {
   if (group.includes('islamic banking'))             return 'ibg';
   if (group.includes('branch banking'))              return 'conv';
   if (group === '' || group === 'n/a')               return 'conv';
-  // Anything else is a Head Office / Back Office group
+
   return 'ho';
 }
 
 const BK_LABELS = { ibg:'Islamic Banking (IBG)', conv:'Conventional / Branch Banking', ho:'Head Office / Back Office' };
 const BK_ICONS  = { ibg:'🕌', conv:'🏦', ho:'🏢' };
 
-// ════════════════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════════════════
 let allData=[], filteredData=[], charts={};
 let currentView='month', currentMonth='all', currentQuarter='all',
     currentBanking='all', currentRegion='all', currentCluster='all', currentCategory='all';
 
-
-// Sort month strings ("January 2025", "February 2025") chronologically
 function sortMonths(months) {
   return [...months].sort((a, b) => {
     const da = new Date(a + ' 1');
@@ -1073,19 +958,8 @@ function sortMonths(months) {
     return a.localeCompare(b); // fallback alphabetical
   });
 }
-// ════════════════════════════════════════════════════════
-// INIT
-// ════════════════════════════════════════════════════════
-// ── Load ALL training data from per-month localStorage keys ──────────────
-// ════════════════════════════════════════════════════════
-// DATA LOADING — fetches from Google Sheets via Apps Script
-// ════════════════════════════════════════════════════════
-const APPS_URL = 'https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec';
 
-// ════════════════════════════════════════════════════════
-// DATA LOADING — everything from Google Sheets
-// No localStorage for training data or headcount
-// ════════════════════════════════════════════════════════
+const APPS_URL = 'https://script.google.com/macros/s/AKfycbypbyoZqSN7OP8E9uRFb5Uy1FrmfrOv2FTAubtpss0XyR1cxI37bVkUmVzTF0NCrvA/exec';
 
 async function fetchFromSheets(action, params) {
   let url = `${APPS_URL}?action=${action}`;
@@ -1108,7 +982,7 @@ async function loadDashboard() {
   if (statusDot)  statusDot.className = 'status-dot';
 
   try {
-    // Fetch all data in parallel
+
     const [tdRes, hcRes, progRes, resignedRes] = await Promise.all([
       fetchFromSheets('getTrainingData'),
       fetchFromSheets('getHeadcount'),
@@ -1120,21 +994,18 @@ async function loadDashboard() {
 
     allData = tdRes.rows || [];
 
-    // Headcount for program tracker
     if (hcRes.success && hcRes.rows && hcRes.rows.length) {
       window._sheetsHc = { rows: hcRes.rows, month: hcRes.month || '' };
     }
 
-    // Programs — Sheets is source of truth, cache locally for fast re-access
     if (progRes.success && progRes.programs && progRes.programs.length) {
       localStorage.setItem('ubl_programs', JSON.stringify(progRes.programs));
     } else {
-      // Fall back to locally cached programs if Sheets has none
+
       const local = localStorage.getItem('ubl_programs');
       if (local) try { progRes.programs = JSON.parse(local); } catch(e) {}
     }
 
-    // Resigned IDs
     if (resignedRes.success) {
       window._sheetsResigned = new Set(resignedRes.resignedIds || []);
     }
@@ -1164,15 +1035,14 @@ async function loadDashboard() {
   }
 }
 
-
 function initDashboard() {
   document.getElementById('emptyState').style.display  = 'none';
   document.getElementById('dashContent').style.display = 'block';
   document.getElementById('statusDot').classList.remove('no-data');
   document.getElementById('statusText').textContent = `${allData.length.toLocaleString()} records loaded`;
-  // Normalise Region ("South Region"→"South") and tag banking type
+
   allData = allData.map(r => {
-    // Re-derive _month/_quarter if missing (handles date parsing failures in admin)
+
     let month = r._month;
     let quarter = r._quarter;
     if (!month) {
@@ -1191,7 +1061,7 @@ function initDashboard() {
       ...r,
       _month: month || r._uploadMonth || '',
       _quarter: quarter || r._quarter || '',
-      // Re-derive _region from raw Region column
+
       _region: (()=>{ const v=cleanRegion(norm(r['Region'])); return v||cleanRegion(norm(r['_region']||'')); })(),
       _bankingType: getBankingType(r)
     };
@@ -1200,33 +1070,26 @@ function initDashboard() {
   applyFilters();
 }
 
-// ════════════════════════════════════════════════════════
-// FILTER POPULATION
-// ════════════════════════════════════════════════════════
 function populateFilters() {
   const months = sortMonths([...new Set(allData.map(r=>r._month).filter(Boolean))]);
   const mSel = document.getElementById('monthFilter');
   mSel.innerHTML = '<option value="all">All Months</option>';
   months.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
 
-  // Region filter — uses _region (pre-cleaned: 'South Region'→'South')
   const regions = [...new Set(allData.map(r=>r._region).filter(Boolean))].sort();
   const rSel = document.getElementById('regionFilter');
   rSel.innerHTML = '<option value="all">All Regions</option>';
   regions.forEach(r => rSel.innerHTML += `<option value="${r}">${r}</option>`);
 
-  // Use raw value for filter matching, but cleanCluster() for display
   const rawClusters = [...new Set(allData.map(r=>norm(r.Cluster)).filter(Boolean))].sort();
   const cSel = document.getElementById('clusterFilter');
   cSel.innerHTML = '<option value="all">All Clusters</option>';
   rawClusters.forEach(c => cSel.innerHTML += `<option value="${c}">${cleanCluster(c)}</option>`);
 
-  // RULE 3: N/A values kept and shown as-is in dropdowns
   const cats = [...new Set(allData.map(r=>norm(r.Category)).filter(Boolean))].sort();
   const catSel = document.getElementById('categoryFilter');
   catSel.innerHTML = '<option value="all">All Categories</option>';
   cats.forEach(c => catSel.innerHTML += `<option value="${c}">${c}</option>`);
-
 
   renderHistoryChips();
 }
@@ -1248,9 +1111,6 @@ function jumpToMonth(m) {
   applyFilters();
 }
 
-// ════════════════════════════════════════════════════════
-// FILTER CONTROLS
-// ════════════════════════════════════════════════════════
 function setView(v,el) {
   currentView=v;
   document.querySelectorAll('#viewToggle .seg-btn').forEach(b=>b.classList.remove('active'));
@@ -1303,31 +1163,25 @@ function buildLabel() {
   return currentQuarter==='all' ? 'Full Year' : currentQuarter;
 }
 
-// ════════════════════════════════════════════════════════
-// KPIs
-// RULE 3: N/A values shown but employees counted (unique IDs)
-// RULE 4: Courses = primary programs, modules = sub-components
-// ════════════════════════════════════════════════════════
 function renderKPIs() {
   const enrolled   = filteredData.filter(isEnrolled).length;
   const attended   = filteredData.filter(isAttended).length;
-  // Total sessions = Course Title + Region combos (same course in diff regions = separate session)
+
   const courses    = new Set(filteredData.map(r=>{
     const ct=norm(r['Course Title']); const rg=r._region;
     return (ct&&ct.toLowerCase()!=='n/a') ? `${ct}||${rg}` : null;
   }).filter(Boolean)).size;
-  // Unique programs = distinct Course Titles only (regardless of region)
+
   const uniqueCourses = new Set(filteredData.map(r=>{
     const ct=norm(r['Course Title']);
     return (ct&&ct.toLowerCase()!=='n/a') ? ct : null;
   }).filter(Boolean)).size;
   const hours      = filteredData.reduce((s,r)=>s+(parseFloat(r['Duration'])||0),0);
   const rate       = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
-  // RULE 3+4: unique employees by Employee No. (even with N/A other fields)
+
   const uniqueEmps = new Set(filteredData.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
   const scoreVals=filteredData.map(r=>parseFloat(r['Test Score'])).filter(s=>!isNaN(s)&&s>0);
   const avgTestScore=scoreVals.length?(scoreVals.reduce((a,b)=>a+b,0)/scoreVals.length).toFixed(1):null;
-  // RULE 4: avg course enrolments per unique employee
 
   animCount('kpi-enrolled', enrolled);
   animCount('kpi-attended', attended);
@@ -1343,9 +1197,6 @@ function renderKPIs() {
   document.getElementById('kpi5sub').textContent = `${attended.toLocaleString()} attended / ${enrolled.toLocaleString()} enrolled`;
 }
 
-// ════════════════════════════════════════════════════════
-// BANKING SEGMENT CARDS  (RULE 2)
-// ════════════════════════════════════════════════════════
 function renderBankingCards() {
   document.getElementById('bankingGrid').innerHTML = ['ibg','conv','ho'].map(seg => {
     const d        = filteredData.filter(r=>r._bankingType===seg);
@@ -1371,20 +1222,11 @@ function renderBankingCards() {
   }).join('');
 }
 
-// ════════════════════════════════════════════════════════
-// CLUSTER CARDS  (RULE 1 — clean display name)
-// ════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════
-// REGION CARDS
-// Region = where training was delivered (L&D center location)
-// Completely independent from Cluster (employee home area)
-// ════════════════════════════════════════════════════════
 function renderRegions() {
   const REGION_ORDER = ['South','Central','North'];
   const REGION_COLORS = { South:'#0175C0', Central:'#059669', North:'#d97706' };
   const REGION_ICONS  = { South:'🏙', Central:'🏛', North:'🏔' };
 
-  // Get all regions from data — ordered, with fallback for unexpected values
   const allRegions = [...new Set(filteredData.map(r=>r._region).filter(Boolean))];
   const ordered = [
     ...REGION_ORDER.filter(r=>allRegions.includes(r)),
@@ -1392,7 +1234,7 @@ function renderRegions() {
   ];
 
   if (!ordered.length) {
-    // Debug: show what region values actually exist in the data
+
     const debugVals = [...new Set(filteredData.map(r=>norm(r['Region'])||'(blank)').slice(0,5))];
     document.getElementById('regionRow').innerHTML =
       `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-dim);font-size:13px">`
@@ -1403,20 +1245,20 @@ function renderRegions() {
   }
 
   document.getElementById('regionRow').innerHTML = ordered.map(region => {
-    // Region = training location: count all rows where Region matches
+
     const d        = filteredData.filter(r=>r._region===region);
     const enrolled = d.length;                                     // everyone in this region's training
     const attended = d.filter(isAttended).length;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const hours    = d.reduce((s,r)=>s+(parseFloat(r['Duration'])||0),0);
-    // Programs = Course+Region combos delivered by THIS region's L&D center
+
     const programs = new Set(d.map(r=>{
       const ct=norm(r['Course Title']);
       return (ct&&ct.toLowerCase()!=='n/a')?ct:null;
     }).filter(Boolean)).size;
-    // Unique employees who attended trainings in this region (from ANY cluster)
+
     const uniqueEmps = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
-    // How many different clusters sent employees to this region
+
     const clustersServed = new Set(d.map(r=>norm(r['Cluster'])).filter(v=>v&&v.toLowerCase()!=='n/a')).size;
 
     const color = REGION_COLORS[region] || '#0175C0';
@@ -1442,7 +1284,7 @@ function renderRegions() {
 }
 
 function renderClusters() {
-  // CHANGE 4: Sort clusters — conventional/normal first, IBG clusters last
+
   const rawClusters = [...new Set(filteredData.map(r=>norm(r.Cluster)).filter(Boolean))]
     .sort((a,b) => {
       const aIBG = a.toUpperCase().includes('IBG');
@@ -1478,9 +1320,6 @@ function renderClusters() {
   }).join('');
 }
 
-// ════════════════════════════════════════════════════════
-// CHARTS
-// ════════════════════════════════════════════════════════
 const UBL='#0175C0', BL='rgba(1,117,192,0.12)', GREEN='#0a8f5c', AMBER='#c47500',
       PURPLE='#5235a0', RED='#d03030', TEAL='#0891b2', ROSE='#be185d';
 const PALETTE=[UBL,GREEN,AMBER,PURPLE,RED,TEAL,ROSE,'#b45309','#065f46','#1e3a5f'];
@@ -1553,7 +1392,6 @@ function donut(id,data,colors){
   });
 }
 
-// RULE 3: N/A values shown as "N/A" in charts (not dropped)
 function renderCategoryChart(){ donut('categoryChart', countBy(filteredData,r=>norm(r.Category)||'N/A')); }
 function renderTypeChart(){ donut('typeChart', countBy(filteredData,r=>norm(r['Training Type'])||'N/A'),[GREEN,PURPLE,UBL,AMBER,RED]); }
 function renderVenueChart(){ donut('venueChart', countBy(filteredData,r=>norm(r['Training Venue'])||'N/A'),[UBL,AMBER,GREEN,PURPLE,RED,TEAL,ROSE]); }
@@ -1569,7 +1407,7 @@ function renderScoreChart(){
 function renderGradeChart(){
   dc('gradeChart');
   const GRADE_ORDER=['OG-4','OG-3','OG-2','OG-1','AVP','VP','SVP','EVP','SEVP','SEVP-II'];
-  // RULE 3: include N/A grade rows but separate them
+
   const grades=[...new Set(filteredData.map(r=>norm(r.Grade)).filter(Boolean))];
   const known=GRADE_ORDER.filter(g=>grades.includes(g));
   const other=grades.filter(g=>!GRADE_ORDER.includes(g)).sort();
@@ -1598,9 +1436,6 @@ function renderClusterAttChart(){
   });
 }
 
-// ════════════════════════════════════════════════════════
-// COURSE TABLE — updated schema (no Modules/Delivery, adds Test Score/Venue)
-// ════════════════════════════════════════════════════════
 function renderCourseTable(){
   const courses=[...new Set(filteredData.map(r=>norm(r['Course Title'])).filter(Boolean))];
   const rows=courses.map(course=>{
@@ -1639,11 +1474,7 @@ function renderCourseTable(){
       <td>${r.dur==='—'?'<span class="na-tag">—</span>':r.dur+' days'}</td>
     </tr>`).join('');
 }
-// ════════════════════════════════════════════════════════
-// GRADE TABLE
-// RULE 3: N/A grade rows counted — unique employees by ID
-// RULE 5: not everyone does every training — no anomaly flags
-// ════════════════════════════════════════════════════════
+
 function renderGradeTable(){
   const GRADE_ORDER=['OG-4','OG-3','OG-2','OG-1','AVP','VP','SVP','EVP','SEVP','SEVP-II'];
   const grades=[...new Set(filteredData.map(r=>norm(r.Grade)).filter(Boolean))];
@@ -1653,7 +1484,7 @@ function renderGradeTable(){
     const d        = filteredData.filter(r=>norm(r.Grade)===g);
     const enrolled = d.filter(isEnrolled).length;
     const attended = d.filter(isAttended).length;
-    // Unique employees for this grade (RULE 3 — N/A on other fields doesn't exclude them)
+
     const unique   = new Set(d.map(r=>norm(r['Employee No.'])).filter(Boolean)).size;
     const rate     = enrolled>0 ? Math.round((attended/enrolled)*100) : 0;
     const gradeDisplay = g.toLowerCase()==='n/a' ? `<span class="na-pill">N/A</span>` : `<span class="g-pill">${g}</span>`;
@@ -1672,18 +1503,10 @@ function renderGradeTable(){
   }).join('');
 }
 
-// ════════════════════════════════════════════════════════
-// UTILITIES
-// ════════════════════════════════════════════════════════
 function norm(v){ return v==null?'':String(v).trim(); }
 
-// ENROLLED = every row = every employee who was invited to training.
-// Attended employees were also enrolled, so Total Enrolled = all rows.
-// This ensures Attendance Rate can never exceed 100%.
 function isEnrolled(r){ return true; }
 
-// ATTENDED = only those with an explicit attended status.
-// Enrolled/Invited alone = invited but did NOT attend.
 function isAttended(r){
   const s=norm(r['Attendance Status']).toLowerCase();
   return s.includes('attend');
@@ -1696,11 +1519,6 @@ function animCount(id,target){
   const step=target/(900/16);let cur=0;
   const t=setInterval(()=>{cur=Math.min(cur+step,target);el.textContent=Math.floor(cur).toLocaleString();if(cur>=target)clearInterval(t);},16);
 }
-
-
-// ════════════════════════════════════════════════════════
-// PROGRAM PROGRESS — cross-references headcount vs training
-// ════════════════════════════════════════════════════════
 
 function renderProgramProgress() {
   const programs = getPrograms();
@@ -1721,7 +1539,6 @@ function renderProgramProgress() {
 
   grid.innerHTML = programs.map((prog, pi) => buildProgCard(prog, hc, resigned, pi)).join('');
 
-  // Animate rings after render
   setTimeout(() => {
     document.querySelectorAll('.pp-ring-fill').forEach(el => {
       const target = parseFloat(el.dataset.target || 0);
@@ -1749,13 +1566,11 @@ function buildProgCard(prog, hc, resigned, idx) {
   const nid    = v => ns(v).replace(/\.0$/,'');
   const idVars = id => { const s=nid(id); return [s, s.replace(/^0+/,'')||s, s.padStart(6,'0')]; };
 
-  // Build HC lookup — works across all ID formats
   const hcMap = new Map();
   hc.rows.forEach(e => idVars(e['Employee No.']).forEach(v => hcMap.set(v, e)));
   const findHc = id => { for(const v of idVars(id)){ if(hcMap.has(v)) return hcMap.get(v); } return null; };
   const inHc   = id => !!findHc(id);
 
-  // Banking type
   const getBanking = e => {
     const g = ns(e['Group']).toLowerCase();
     if(g.includes('islamic banking')) return 'ibg';
@@ -1763,24 +1578,19 @@ function buildProgCard(prog, hc, resigned, idx) {
     return 'other';
   };
 
-  // ALL training data for this program (not filtered by dashboard date selector)
   const progRows = allData.filter(r => ns(r['Category']).toLowerCase() === prog.category.toLowerCase());
 
-  // Resigned from this program: in training data but not in current HC
   const progTrainedIds = new Set(progRows.map(r => nid(r['Employee No.'])).filter(Boolean));
   const progResignedIds = new Set([...progTrainedIds].filter(id => !inHc(id)));
 
-  // ── Per-course calculations ──────────────────────────────────────────────
   const courses = prog.courses || [];
 
-  // Overall program: target = union of all course targets
   const programTargetSet = new Set();
   const courseResults = courses.map(co => {
 
-    // Target for this course = HC employees matching this course's functional titles
     const coTarget = hc.rows.filter(emp => {
       if(!inHc(emp['Employee No.'])) return false;
-      // Must be in mandated groups (if defined at program level)
+
       if(prog.groups.length) {
         const g = ns(emp['Group']).toLowerCase();
         const inGroup = prog.groups.some(pg => g === pg.toLowerCase());
@@ -1795,7 +1605,6 @@ function buildProgCard(prog, hc, resigned, idx) {
     coTarget.forEach(e => idVars(e['Employee No.']).forEach(v => coTargetIdSet.add(v)));
     const inCoTarget = id => idVars(id).some(v => coTargetIdSet.has(v));
 
-    // Phase attendance sets — count ALL attendees (target + additional)
     const phaseDone        = {};  // target audience who attended
     const phaseDoneAll     = {};  // everyone who attended (incl. outside target)
     (co.phaseLabels||[]).forEach(ph => {
@@ -1810,7 +1619,6 @@ function buildProgCard(prog, hc, resigned, idx) {
       phaseDoneAll[ph] = allIds;   // includes out-of-target attendees still in HC
     });
 
-    // Sequential propagation (backward) — applied to both sets
     const labels = co.phaseLabels||[];
     for(let i=labels.length-1; i>=1; i--){
       phaseDone[labels[i]].forEach(id => {
@@ -1821,7 +1629,6 @@ function buildProgCard(prog, hc, resigned, idx) {
       });
     }
 
-    // Additional participants: attended at least one phase, not in target audience, still in HC
     const firstPh = labels[0];
     const coAllAttended = firstPh
       ? new Set([...(phaseDoneAll[firstPh]||[])].filter(id => inHc(id) && !inCoTarget(id)))
@@ -1829,26 +1636,22 @@ function buildProgCard(prog, hc, resigned, idx) {
 
     const started  = phaseDone[labels[0]] || new Set();
     const finished = phaseDone[labels[labels.length-1]] || new Set();
-    // Total started = target who started + additional
+
     const totalStartedAll = firstPh ? (phaseDoneAll[firstPh]||new Set()).size : started.size;
 
     return { co, coTarget, coTargetIdSet, phaseDone, phaseDoneAll, labels, started, finished, coAllAttended, inCoTarget, totalStartedAll };
   });
 
-  // ── Overall program stats ────────────────────────────────────────────────
-  // An employee "started" the program if they started at least one course
-  // An employee "completed" the program if they completed all phases of their relevant course
   const programStarted  = new Set();
   const programFinished = new Set();
   courseResults.forEach(({phaseDoneAll, labels}) => {
-    // Use all attendees (target + additional) for overall program stats
+
     const s = phaseDoneAll[labels[0]] || new Set();
     const f = phaseDoneAll[labels[labels.length-1]] || new Set();
     s.forEach(id => programStarted.add(id));
     f.forEach(id => programFinished.add(id));
   });
 
-  // Build total attendees across all courses (all phases combined, any person)
   const allProgAttendees = new Set();
   courseResults.forEach(({phaseDoneAll, labels}) => {
     (phaseDoneAll[labels[0]]||new Set()).forEach(id => allProgAttendees.add(id));
@@ -1859,7 +1662,6 @@ function buildProgCard(prog, hc, resigned, idx) {
   const totalPct      = totalTarget > 0 ? Math.round(totalStarted/totalTarget*100) : 0;
   const fullPct       = totalTarget > 0 ? Math.round(totalFinished/totalTarget*100) : 0;
 
-  // IBG vs Conv breakdown
   const ibgTarget  = hc.rows.filter(e => getBanking(e)==='ibg' && idVars(e['Employee No.']).some(v=>programTargetSet.has(v)));
   const convTarget = hc.rows.filter(e => getBanking(e)==='conv' && idVars(e['Employee No.']).some(v=>programTargetSet.has(v)));
   const ibgIdSet   = new Set(); ibgTarget.forEach(e=>idVars(e['Employee No.']).forEach(v=>ibgIdSet.add(v)));
@@ -1872,7 +1674,6 @@ function buildProgCard(prog, hc, resigned, idx) {
   const ringColor = totalPct>=80?'#0a8f5c':totalPct>=50?'#c47500':'#0175C0';
   const r=37, circ=2*Math.PI*r;
 
-  // ── MoM ─────────────────────────────────────────────────────────────────
   const prevHcMonth = getPrevHcMonth();
   let momHTML = '';
   if(prevHcMonth){
@@ -1886,7 +1687,6 @@ function buildProgCard(prog, hc, resigned, idx) {
     localStorage.setItem(`ubl_prog_snap_${prog.id}_${(hc.month||'now').replace(/\s/g,'_')}`,JSON.stringify(totalPct));
   }
 
-  // ── IBG / Conv split ─────────────────────────────────────────────────────
   const splitHTML = (ibgTarget.length||convTarget.length) ? `
     <div style="display:grid;grid-template-columns:${ibgTarget.length&&convTarget.length?'1fr 1fr':'1fr'};gap:10px;margin-bottom:14px">
       ${ibgTarget.length?`<div style="background:var(--ibg-tint);border:1px solid var(--ibg-border);border-radius:10px;padding:12px 14px">
@@ -1907,13 +1707,11 @@ function buildProgCard(prog, hc, resigned, idx) {
       </div>`:''}
     </div>` : '';
 
-  // ── Per-course breakdown with phase tabs ─────────────────────────────────
   const coursesHTML = courseResults.map(({co, coTarget, phaseDone, phaseDoneAll, labels, started, finished, coAllAttended, totalStartedAll}) => {
-    // Use ALL attendees (target + additional) for progress counts
+
     const startedAll  = phaseDoneAll[labels[0]] || new Set();
     const finishedAll = phaseDoneAll[labels[labels.length-1]] || new Set();
-    // ct_hc  = headcount-defined target audience (used for pending list)
-    // ct_all = everyone who ever attended any phase (used for progress %)
+
     const ct_hc  = coTarget.length;
     const ct_all = startedAll.size > 0 ? startedAll.size : 1;
     const ct     = ct_all;  // denominator for % is total attendees
@@ -1924,7 +1722,6 @@ function buildProgCard(prog, hc, resigned, idx) {
     const cColor = cpct>=80?'#0a8f5c':cpct>=50?'#c47500':'#0175C0';
     const cid    = `co-${prog.id}-${co.id}`;
 
-    // Phase toggle tabs (only shown when > 1 phase)
     const phaseTabsHTML = labels.length > 1 ? `
       <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
         <button onclick="setPhaseTab('${cid}','all')" id="${cid}-tab-all"
@@ -1938,7 +1735,6 @@ function buildProgCard(prog, hc, resigned, idx) {
         </button>`).join('')}
       </div>` : '';
 
-    // "All phases" view — bars for each phase
     const allPhasesView = `<div id="${cid}-view-all">
       ${labels.map((ph,i) => {
         const done  = phaseDoneAll[ph]||new Set();   // everyone who attended
@@ -1961,12 +1757,11 @@ function buildProgCard(prog, hc, resigned, idx) {
       }).join('')}
     </div>`;
 
-    // Individual phase views — employee list for that specific phase
     const singlePhaseViews = labels.map((ph,i) => {
       const done    = phaseDoneAll[ph]||new Set();
       const doneT   = phaseDone[ph]||new Set();
       const addCntPh = done.size - doneT.size;
-      // Not done = target audience who haven't done this phase (additional are already counted)
+
       const notDone = coTarget.filter(e => !idVars(nid(e['Employee No.'])).some(v=>done.has(v)));
       return `<div id="${cid}-view-${i}" style="display:none">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
@@ -2027,9 +1822,8 @@ function buildProgCard(prog, hc, resigned, idx) {
     </div>`;
   }).join('');
 
-  // ── Pending list (program-level — not yet started any course) ────────────
   const pendingId   = `pending-${prog.id}`;
-  // Pending = in HC target audience but hasn't attended any course under this program
+
   const pendingEmps = hc.rows.filter(e => {
     const id = nid(e['Employee No.']);
     if(!idVars(id).some(v=>programTargetSet.has(v))) return false;
@@ -2045,7 +1839,6 @@ function buildProgCard(prog, hc, resigned, idx) {
       <span class="pp-cat">${prog.category}</span>
     </div>
 
-    <!-- Overall ring + stats -->
     <div class="pp-ring-wrap">
       <div class="pp-ring">
         <svg viewBox="0 0 90 90" width="90" height="90">
@@ -2075,14 +1868,11 @@ function buildProgCard(prog, hc, resigned, idx) {
     ${momHTML}
     ${splitHTML}
 
-    <!-- Per-course breakdown -->
     <div style="margin-bottom:12px">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text4);margin-bottom:9px">Course Progress (${courses.length} courses)</div>
       ${coursesHTML}
     </div>
 
-    <!-- Pending toggle -->
-    <!-- Month-by-month progress -->
     ${buildMonthByMonthHTML(prog, hc, prog.id)}
 
     ${pendingEmps.length ? `
@@ -2110,9 +1900,8 @@ function buildProgCard(prog, hc, resigned, idx) {
   </div>`;
 }
 
-// ── Phase tab switcher ────────────────────────────────────────────────────
 function setPhaseTab(cid, tab) {
-  // Hide all views for this course
+
   const allView = document.getElementById(cid + '-view-all');
   if (allView) allView.style.display = 'none';
   let i = 0;
@@ -2122,11 +1911,10 @@ function setPhaseTab(cid, tab) {
     v.style.display = 'none';
     i++;
   }
-  // Show selected view
+
   const target = document.getElementById(cid + '-view-' + tab);
   if (target) target.style.display = 'block';
 
-  // Update tab button styles
   const allBtn = document.getElementById(cid + '-tab-all');
   if (allBtn) {
     allBtn.style.background = tab==='all' ? 'var(--ubl)' : 'var(--bg2)';
@@ -2145,8 +1933,6 @@ function setPhaseTab(cid, tab) {
   }
 }
 
-// ── Month-by-month program progress ──────────────────────────────────────
-// Build a per-month breakdown for a program card using allData
 function buildMonthByMonthHTML(prog, hc, progId) {
   if (!hc || !hc.rows || !prog.courses || !prog.courses.length) return '';
 
@@ -2160,12 +1946,10 @@ function buildMonthByMonthHTML(prog, hc, progId) {
 
   const progRows = allData.filter(r => ns(r['Category']).toLowerCase() === prog.category.toLowerCase());
 
-  // Get sorted months from training data
   const months = [...new Set(progRows.map(r => r._month || r._uploadMonth).filter(Boolean))];
   const sortedMonths = sortMonths(months);
   if (!sortedMonths.length) return '';
 
-  // For each month, count cumulative attendees (anyone who attended up to & incl. that month)
   const cumulativeByMonth = sortedMonths.map(month => {
     const upToMonth = progRows.filter(r => {
       const m = r._month || r._uploadMonth || '';
@@ -2174,12 +1958,11 @@ function buildMonthByMonthHTML(prog, hc, progId) {
       return mIdx <= thisIdx && ns(r['Attendance Status']).toLowerCase().includes('attend');
     });
     const attendedIds = new Set(upToMonth.map(r => nid(r['Employee No.'])).filter(Boolean));
-    // Count target (in HC + mandated groups) separately
+
     const targetAttended = [...attendedIds].filter(id => inHc(id));
     return { month, count: attendedIds.size, targetCount: targetAttended.length };
   });
 
-  // Per-month new attendees (only first appearance)
   const seenBefore = new Set();
   const monthlyNew = sortedMonths.map(month => {
     const thisMonth = progRows.filter(r => {
@@ -2265,17 +2048,16 @@ function togglePending(id, btn) {
   if (arrow) arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
-// ── Data helpers ─────────────────────────────────────────
 function getPrograms() {
   try { return JSON.parse(localStorage.getItem('ubl_programs') || '[]'); } catch(e) { return []; }
 }
 
 function getActiveHeadcount() {
-  // Primary: use data fetched from Sheets on load
+
   if (window._sheetsHc && window._sheetsHc.rows && window._sheetsHc.rows.length) {
     return window._sheetsHc;
   }
-  // Fallback: try localStorage chunks (legacy)
+
   try {
     const meta = JSON.parse(localStorage.getItem('ubl_hc_active') || 'null');
     if (!meta) return null;
@@ -2292,9 +2074,9 @@ function getActiveHeadcount() {
 }
 
 function getResignedIds() {
-  // Primary: use data fetched from Sheets on load
+
   if (window._sheetsResigned) return window._sheetsResigned;
-  // Fallback: localStorage
+
   try { const ids = JSON.parse(localStorage.getItem('ubl_resigned_ids') || '[]'); return new Set(ids); } catch(e) { return new Set(); }
 }
 
@@ -2305,17 +2087,12 @@ function getPrevHcMonth() {
   } catch(e) { return null; }
 }
 
-// ════════════════════════════════════════════════════════
-// REPORT BUILDER
-// ════════════════════════════════════════════════════════
-
 let _rptMode = 'all';  // 'all' | 'category' | 'course'
 
 function openReportBuilder() {
   const modal = document.getElementById('reportModal');
   modal.style.display = 'flex';
 
-  // Fill month labels
   const months = sortMonths([...new Set(allData.map(r=>r._month||r._uploadMonth).filter(Boolean))]);
   const cur = months[months.length-1] || '';
   const curShort = cur.replace(/\s\d{4}$/,'').trim();
@@ -2324,7 +2101,6 @@ function openReportBuilder() {
   if (el1) el1.textContent = cur || '—';
   if (el2) el2.textContent = curShort || '—';
 
-  // Build category list
   const cats = [...new Set(allData.map(r=>norm(r['Category'])).filter(Boolean))].sort();
   const catList = document.getElementById('rptCategoryList');
   catList.innerHTML = cats.map(cat => `
@@ -2332,10 +2108,8 @@ function openReportBuilder() {
       <input type="checkbox" class="rpt-cat-cb" value="${cat}" checked style="accent-color:#0175C0"> ${cat}
     </label>`).join('');
 
-  // Build course/program tree
   buildCourseTree();
 
-  // Wire format toggle
   document.querySelectorAll('input[name="rptFormat"]').forEach(r => {
     r.onchange = () => {
       const isPeriod = r.value === 'attendance';
@@ -2363,18 +2137,16 @@ function setRptMode(mode) {
 }
 
 function buildCourseTree() {
-  // Get configured programs from localStorage
+
   let programs = [];
   try { programs = JSON.parse(localStorage.getItem('ubl_programs') || '[]'); } catch(e) {}
 
-  // All courses in data
   const allCourses = [...new Set(allData.map(r=>norm(r['Course Title'])).filter(Boolean))].sort();
 
-  // Map courses to their program (if any)
   const courseToProgram = {};
   programs.forEach(prog => {
     (prog.courses || []).forEach(co => {
-      // Match by course name prefix
+
       allCourses.forEach(ct => {
         if (ct.toLowerCase().includes(co.name.toLowerCase())) {
           courseToProgram[ct] = prog.name;
@@ -2383,7 +2155,6 @@ function buildCourseTree() {
     });
   });
 
-  // Build tree: grouped by program, then ungrouped
   const progGroups = {};
   const ungrouped  = [];
   allCourses.forEach(ct => {
@@ -2398,7 +2169,6 @@ function buildCourseTree() {
 
   let html = '';
 
-  // Programs first
   Object.keys(progGroups).sort().forEach(progName => {
     html += `<div style="margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;color:#0175C0;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px;display:flex;align-items:center;gap:6px">
@@ -2414,7 +2184,6 @@ function buildCourseTree() {
     html += '</div>';
   });
 
-  // Ungrouped courses
   if (ungrouped.length) {
     html += `<div style="margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;color:#7a90a4;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:5px">Other Courses</div>`;
@@ -2444,7 +2213,6 @@ function closeReportBuilder() {
   document.getElementById('reportModal').style.display = 'none';
 }
 
-// Get filtered data based on selection mode
 function getRptData() {
   if (_rptMode === 'all') return filteredData;
 
@@ -2485,7 +2253,6 @@ function generateReport() {
   else generateSummaryReport(rptData);
 }
 
-// ── Attendance Table ──────────────────────────────────────────────────────
 function generateAttendanceTable(rptData) {
   const includeCurMonth = document.getElementById('rpt-cur-month').checked;
   const includeYtd      = document.getElementById('rpt-ytd').checked;
@@ -2499,7 +2266,6 @@ function generateAttendanceTable(rptData) {
 
   const selectedCourses = getSelectedCourses();
 
-  // Count unique attendees: course × region × monthList
   const countAtt = (course, region, monthList) => {
     return new Set(
       allData.filter(r =>
@@ -2511,7 +2277,6 @@ function generateAttendanceTable(rptData) {
     ).size;
   };
 
-  // Column definitions
   const colDefs = [];
   regions.forEach(reg => {
     if (includeCurMonth) colDefs.push({ label:`${curShort}
@@ -2520,10 +2285,8 @@ ${year}`, region:reg, months:[curMonth] });
 ${year}`, region:reg, months });
   });
 
-  // Workbook
   const wb = XLSX.utils.book_new();
 
-  // Row 1: merged region headers
   const row1 = ['Programs'];
   regions.forEach(reg => {
     const cols = colDefs.filter(c=>c.region===reg);
@@ -2532,11 +2295,9 @@ ${year}`, region:reg, months });
     for (let i=1;i<cols.length;i++) row1.push('');
   });
 
-  // Row 2: period sub-headers
   const row2 = [''];
   colDefs.forEach(col => row2.push(col.label));
 
-  // Group courses by program
   let programs = [];
   try { programs = JSON.parse(localStorage.getItem('ubl_programs') || '[]'); } catch(e) {}
   const courseToProgram = {};
@@ -2548,7 +2309,6 @@ ${year}`, region:reg, months });
     });
   });
 
-  // Build data rows — grouped by program
   const progGroups = {};
   const ungrouped  = [];
   selectedCourses.forEach(ct => {
@@ -2561,14 +2321,12 @@ ${year}`, region:reg, months });
   const merges   = [];
   let rowIdx     = 2; // 0-indexed, rows 0+1 are headers
 
-  // Program groups
   Object.keys(progGroups).sort().forEach(progName => {
-    // Program header row (bold, shaded)
+
     const progRow = [progName, ...colDefs.map(()=>'')];
     dataRows.push({ data: progRow, isHeader: true });
     rowIdx++;
 
-    // Course rows under program
     progGroups[progName].forEach(ct => {
       const row = [ct, ...colDefs.map(col => {
         const n = countAtt(ct, col.region, col.months);
@@ -2579,7 +2337,6 @@ ${year}`, region:reg, months });
     });
   });
 
-  // Ungrouped
   ungrouped.forEach(ct => {
     const row = [ct, ...colDefs.map(col => {
       const n = countAtt(ct, col.region, col.months);
@@ -2589,21 +2346,17 @@ ${year}`, region:reg, months });
     rowIdx++;
   });
 
-  // Totals
   const totalsRow = ['TOTAL', ...colDefs.map(col => {
     const t = selectedCourses.reduce((sum,ct) => sum + countAtt(ct, col.region, col.months), 0);
     return t > 0 ? t : '-';
   })];
   dataRows.push({ data: totalsRow, isHeader: true });
 
-  // Assemble sheet
   const wsData = [row1, row2, ...dataRows.map(r=>r.data)];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  // Column widths
   ws['!cols'] = [{wch:42}, ...colDefs.map(()=>({wch:13}))];
 
-  // Merge region header cells
   ws['!merges'] = [];
   let ci = 1;
   regions.forEach(reg => {
@@ -2617,7 +2370,6 @@ ${year}`, region:reg, months });
   closeReportBuilder();
 }
 
-// ── Summary / Detail Report ───────────────────────────────────────────────
 function generateSummaryReport(rptData) {
   const incKpis    = document.getElementById('rpt-kpis').checked;
   const incBanking = document.getElementById('rpt-banking').checked;
@@ -2684,7 +2436,7 @@ function generateSummaryReport(rptData) {
   }
 
   if (incCourses) {
-    // Group by program
+
     let programs=[];
     try{programs=JSON.parse(localStorage.getItem('ubl_programs')||'[]');}catch(e){}
     const courseToProgram={};
@@ -2758,11 +2510,10 @@ function tryParse(val) {
 }
 
 </script>
-<!-- REPORT BUILDER MODAL -->
+
 <div id="reportModal" style="display:none;position:fixed;inset:0;background:rgba(1,40,80,0.55);z-index:1000;align-items:flex-start;justify-content:center;backdrop-filter:blur(3px);overflow-y:auto;padding:24px 16px">
   <div style="background:#fff;border-radius:16px;width:100%;max-width:680px;box-shadow:0 24px 80px rgba(1,40,80,0.3);margin:auto">
 
-    <!-- Header -->
     <div style="background:linear-gradient(135deg,#012240,#0175C0);border-radius:16px 16px 0 0;padding:22px 28px;display:flex;align-items:center;justify-content:space-between">
       <div>
         <div style="font-family:'Sora',sans-serif;font-size:17px;font-weight:700;color:#fff">Export Report</div>
@@ -2773,7 +2524,6 @@ function tryParse(val) {
 
     <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
 
-      <!-- STEP 1: Select Category or Individual Courses -->
       <div>
         <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aabccc;margin-bottom:10px">1 — What to include</div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -2782,13 +2532,11 @@ function tryParse(val) {
           <button id="rptModeCourse" onclick="setRptMode('course')" style="padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;background:#f4f7fb;color:#3d5166;border:1px solid #e3e9f2">Pick Courses</button>
         </div>
 
-        <!-- Category selection -->
         <div id="rptCategoryWrap" style="display:none">
           <div style="font-size:11.5px;color:#3d5166;margin-bottom:8px">Select categories to include:</div>
           <div id="rptCategoryList" style="display:flex;flex-wrap:wrap;gap:7px"></div>
         </div>
 
-        <!-- Course/Program tree selection -->
         <div id="rptCourseWrap" style="display:none">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="font-size:11.5px;color:#3d5166">Select courses (grouped by program where applicable):</div>
@@ -2801,7 +2549,6 @@ function tryParse(val) {
         </div>
       </div>
 
-      <!-- STEP 2: Report format -->
       <div>
         <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aabccc;margin-bottom:10px">2 — Report Format</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2817,7 +2564,6 @@ function tryParse(val) {
         </div>
       </div>
 
-      <!-- STEP 3: Period columns (attendance table) -->
       <div id="rptPeriodWrap">
         <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aabccc;margin-bottom:10px">3 — Period Columns</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2830,7 +2576,6 @@ function tryParse(val) {
         </div>
       </div>
 
-      <!-- STEP 4: Sections (summary/detail) -->
       <div id="rptSectionsWrap" style="display:none">
         <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aabccc;margin-bottom:10px">3 — Sections to Include</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
@@ -2843,7 +2588,6 @@ function tryParse(val) {
         </div>
       </div>
 
-      <!-- STEP 5: File format -->
       <div>
         <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#aabccc;margin-bottom:10px">4 — Export As</div>
         <div style="display:flex;gap:8px">
@@ -2856,7 +2600,6 @@ function tryParse(val) {
         </div>
       </div>
 
-      <!-- Generate -->
       <div style="display:flex;gap:10px;padding-top:4px">
         <button onclick="generateReport()" style="flex:1;padding:13px;background:#0175C0;color:#fff;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(1,117,192,0.25)">
           Generate Report →
